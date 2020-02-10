@@ -41,4 +41,24 @@ module.exports = {
         if (!global.epibot.hasOwnProperty('_modules_')) global.epibot._modules_ = {}
         var mod = require('./mod.' + module)
         var obj = (typeof(mod) == 'function') ? new mod() : mod
-       
+        global.epibot._modules_[module] = obj
+    },
+
+    map_all() {
+        Object.keys(global.epibot._modules_).forEach(module => {
+            if (typeof(global.epibot._modules_[module]['module_maps']) == 'function') {
+                global.epibot._modules_[module].module_maps()
+            }
+        })
+    },
+
+    init_all() {
+        Object.keys(global.epibot._modules_).forEach(module => {
+            if (typeof(global.epibot._modules_[module]['initialize']) == 'function') {
+                global.epibot._modules_[module].initialize()
+            }
+        })
+    }
+
+
+}
