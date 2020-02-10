@@ -35,4 +35,36 @@ module.exports = class epibot_cache_module extends epibot_module {
         var result = {
             hit: stats.hits,
             miss: stats.misses,
+            total: total,
+            ratio: ratio
+        };
+        this.output.success('cache_stats', this.utils.serialize(result))
+        return result
+    }
+
     
+    // Flush cache
+
+    flush(quiet = false) {
+        var stats = cache.getStats()
+        var total = stats.hits + stats.misses;
+        cache.flushAll();
+        if (quiet === true)
+            this.output.debug('cache_flush', total)
+        else
+            this.output.success('cache_flush', total)
+        return total;
+    }
+
+    
+    // Cache auto flush (garbage collection)
+
+    gc() {
+        var cachegcpct = 20;
+        var randomgc = Math.random() * 100;
+        if (randomgc >= (100 - cachegcpct)) {
+            this.flush();
+        }
+    }
+
+}
