@@ -314,4 +314,124 @@ module.exports = class epibot_core_module extends epibot_module {
             return (all_ip_allowed.includes(command) ? true : await this.whitelist.verify(ip));
         }
             
-        if (!lo
+        if (!localhost && isapi && multiuser && param_uuid == null && token_uuid == null) {
+            //uuid = core_uuid;
+            this.output.debug('access_api_core')
+            //context.set('uuid', uuid);
+            return (all_ip_allowed.includes(command) ? true : await this.whitelist.verify(ip));
+        }
+
+        if (isapi && !multiuser && param_uuid == null) {
+            uuid = core_uuid;
+            this.output.debug('access_api_core')
+            context.set('uuid', uuid);
+            return (all_ip_allowed.includes(command) ? true : await this.whitelist.verify(ip));
+        }
+
+        if (isapi && !multiuser && param_uuid != null) {
+            uuid = param_uuid;
+            this.output.debug('access_api_uuid')
+            context.set('uuid', uuid);
+            return (all_ip_allowed.includes(command) ? true : await this.whitelist.verify(ip));
+        }
+
+        return false;
+
+    }
+
+    // Parse request
+
+    parse_request(request) {
+        // Single pre-parsed command parameter
+        if (request.body.hasOwnProperty('command')) return request.body;
+        // Multiple pre-parsed command parameters
+        if (this.utils.is_array(request.body) && request.body[0].hasOwnProperty('command')) return request.body;
+        // Raw request body
+        return this.parse_raw(request.rawBody);
+    }
+    
+
+    // Parse raw text into parameter object
+
+    parse_raw(text) {
+        var lines = (text.trim() + '\n').split('\n');
+        var commands = [];
+        for (var l = 0; l < lines.length; l++) {
+            var line = lines[l];
+            if (line.trim() != '') {
+                var params = line.split(' ').filter(part => part.toLowerCase() != 'epibot');
+                var paramObj = {};
+                if (Array.isArray(params)) {
+                    var command = false;
+                    for(var i = 0; i < params.length; i++) {
+                        var param = params[i].trim();
+                        if (param.toLowerCase() != 'epibot') {  // In case user included the "epibot" in the webhook command
+                            if ((param.indexOf('=') < 0) && param.indexOf(':') >= 0 && (command == false)) {
+                                command = true;
+                                param = 'command='+param;
+                            }
+                            var [key, val] = param.split('=');
+                            paramObj[key] = val;
+                        } 
+                    }
+                    commands.push(paramObj);
+                }    
+            }
+        }
+        return (commands.length == 1 ? commands[0] : commands);
+    }
+
+    // Parse Command Parameter Object
+
+    parse_obj(params) {
+        params = this.utils.clean_object(params);      
+        var command = this.utils.extract_props(params, 'command').toLowerCase();
+        if (command == undefined) 
+            return this.output.error('required_param', ['command']);
+        if (command.indexOf(':') < 0) 
+            return this.output.error('malformed_param', ['command']);
+        var parts = command.split(':');
+        var numparts = parts.length;
+        if (this.utils.is_array(parts) && parts.length > 1) {
+            var mod = parts[0];
+            var cmd = parts.slice(1).join(':');
+            if (cmd.indexOf(':') > 0) {                 // Check if stub is included in the command
+                var [stub, cmd] = cmd.split(':');
+                params['stub'] = stub;
+            }
+            if ((numparts == 2) && (api_methods.trade.includes(cmd)) && (parts[0] !== 'trade')) {
+                // "trade:" was excluded from the command, add it
+                var stub = mod;
+                var mod = "trade";
+                params['stub'] = stub;
+                this.output.debug('trade_cmd_shortcut', [stub.toLowerCase(), cmd.toLowerCase()]);
+            }
+        } else {
+            return this.output.error('malformed_param', ['command']);
+        }
+        delete params.command;
+        params = this.utils.uppercase_values(params, ['symbol', 'mapping']);
+        params = this.utils.lowercase_values(params, ['stub']);
+        return [mod, cmd, params];
+    }
+
+
+    // Check if module exists and initialize it
+
+    load_module(module) {
+        if (api_methods.hasOwnProperty(module) && this.hasOwnProperty(module)) {
+            var mod = require('./mod.'+module)
+            this[module] = new mod();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    // Check if a given method exists in a given module
+
+    method_exists(module, method) {
+        const loader = require('./core.loader');
+        loader.map_all();
+        i
