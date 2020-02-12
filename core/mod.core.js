@@ -434,4 +434,102 @@ module.exports = class epibot_core_module extends epibot_module {
     method_exists(module, method) {
         const loader = require('./core.loader');
         loader.map_all();
-        i
+        if (api_methods[module].includes(method)) {
+            return true;
+        }
+        return false;
+    }
+    
+
+    // Execute epibot Command(s)
+
+    async execute(request, raw = null) {
+        this.output.reset();
+        var params = this.parse_request(request);
+        if (this.utils.is_object(params) && params.hasOwnProperty('0') && params['0'].hasOwnProperty('command')) {
+            params = Object.values(params);
+        }
+        if (this.utils.is_array(params)) {                          
+            var results = await this.execute_multiple(params, raw);  // Multiple commands submitted
+        } else {        
+            var results = await this.execute_single(params, raw);     // Single command submitted
+        }
+        return results;
+    }
+
+
+    // Execute Multiple Commands
+
+    async execute_multiple(multi_params, raw) {
+        var results = [];
+        if (this.utils.is_object(multi_params)) {
+            multi_params = Object.values(multi_params)
+        }
+        for (var i = 0; i < multi_params.length; i++) {
+            var params = multi_params[i];
+            if (this.utils.is_object(params)) {
+                var result = await this.execute_single(params, raw);
+                results.push(result);    
+            }
+        }
+        return await this.output.combine(results);
+    }
+
+    // Execute a Single Command
+    
+    async execute_single(params, raw) {
+        var parsed = this.parse_obj(params);
+        if (parsed.length == 3) {
+            var [module, method, params] = parsed;
+            this.output.section('executing_command', [module, method]);
+            this.output.notice('executing_command', [module, method]);
+            //this.output.notice('command_params', [{ ...{ command: module + ":" + method}, ...(this.utils.remove_props(params,['_raw_'])) }]);
+            this.output.notice('command_params', [{ ...{ command: module + ":" + method}, ...params }]);
+            if (this.load_module(module)) {
+                //this.output.debug('loaded_module', module)    
+                var method = this.utils.is_array(method.split(':')) ? method.split(':')[0] : method;
+                if (params.hasOwnProperty('uuid')) {
+                    context.set('uuid', params.uuid);
+                }
+
+                if (this.method_exists(module, method)) {
+
+                    // Check permissions to execute 
+                    var permissionset = await this.settings.get('core', 'permissionset', 'standard');
+                    if (!['standard','provider'].includes(permissionset))
+                        permissionset = 'standard';
+                    var checkpermissions = await this.permissions.check(permissionset, { ...{ command: module + ":" + method}, ...params })
+                    if (!checkpermissions)
+                        return await this.output.parse(this.output.error('permissions_denied', [permissionset, module + ":" + method]));
+
+                    // Start execution
+                    var start = (new Date).getTime();
+                    global.epibot['command'] = {
+                        module: module,
+                        method: method
+                    };
+
+                    // If no symbol is supplied, use the default symbol
+                    if (module != 'symbolmap' && !params.hasOwnProperty('symbol') && params.hasOwnProperty('stub')) {
+                        var exchangeid = this.accounts.get_exchange_from_stub(params.stub);
+                        if (exchangeid !== false) {
+                            var mapping = await this.symbolmap.map(exchangeid, 'DEFAULT');
+                            if (mapping !== false) {
+                                this.output.notice('symbol_mapping', [exchangeid, 'default', mapping])
+                                params.symbol = mapping;
+                            } 
+                        }
+                    }
+
+                    // If stub is supplied, and not adding a new stub, make sure the account exists
+                    if (params.hasOwnProperty('stub') && !(module == 'accounts' && method == 'add')) {
+                        var stub = params.stub.toLowerCase()
+                        if (this.accounts.getaccount(stub) === false) {
+                            return await this.output.parse(this.output.error('unknown_stub', stub))
+                        } 
+                        params.stub = stub
+                        context.set('stub', stub);
+                    }
+
+                    // Check for symbol mapping and use it if required, verify that market exists
+                    if (module != 'symbolmap' && (params.hasOwnProperty('symbol') || params.hasOwnP
