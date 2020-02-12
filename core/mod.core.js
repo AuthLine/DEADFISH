@@ -532,4 +532,69 @@ module.exports = class epibot_core_module extends epibot_module {
                     }
 
                     // Check for symbol mapping and use it if required, verify that market exists
-                    if (module != 'symbolmap' && (params.hasOwnProperty('symbol') || params.hasOwnP
+                    if (module != 'symbolmap' && (params.hasOwnProperty('symbol') || params.hasOwnProperty('tvsymbol')) && params.hasOwnProperty('stub')) {
+                        var exchangeid = await this.accounts.get_exchange_from_stub(params.stub);
+                        if (exchangeid !== false) {
+                            var exchange = new this.classes.exchange(stub);
+                            if (exchange != undefined) {
+
+                                // Check if TradingView syminfo.tickerid supplied in tvsymbol parameter
+                                var tvsymbol = !params.hasOwnProperty('symbol') && params.hasOwnProperty('tvsymbol') ? params.tvsymbol : null;
+                                if (tvsymbol !== null) {
+                                    let result = await exchange.execute(stub, 'market', {tvsymbol: tvsymbol.toUpperCase()});
+                                    if (result instanceof this.classes.market) {
+                                        var symbol = result.symbol;
+                                        this.output.notice('tvsymbolmap_map', [exchangeid, tvsymbol, symbol]);
+                                        params.symbol = symbol;
+                                        delete params.tvsymbol;
+                                    } else {
+                                        return this.output.error('tvsymbolmap_map', [tvsymbol]);
+                                    }
+                                }
+
+                                // Check for symbolmap and use it if configured
+                                var mapping = await this.symbolmap.map(exchangeid, params.symbol);
+                                if (mapping !== false) {
+                                    this.output.notice('symbol_mapping', [exchangeid, params.symbol, mapping])
+                                    params.symbol = mapping.toUpperCase();
+                                }
+                                params.symbol = params.symbol.toUpperCase();
+                            
+                                // Check that market symbol is valid
+
+                                let result = await exchange.execute(stub, 'market', {symbol: params.symbol});
+                                if (this.utils.is_empty(result)) {
+                                    return await this.output.parse(this.output.error('unknown_market', params.symbol));
+                                }
+                            }
+                        }
+                    }
+
+                    if (params.hasOwnProperty('uuid')) delete params.uuid;
+                    if (raw !== null) 
+                        params['_raw_'] = raw;
+                    var result = null;
+                    try {
+                        result = await global.epibot._modules_[module][method](params);
+                    } catch (e) {
+                        this.output.exception(e);
+                        result = false;
+                    }
+                    var end = (new Date).getTime();
+                    var duration = (end - start) / 1000;            
+                    this.output.notice('command_completed', duration);
+                    return await this.output.parse(result);
+
+                } else {
+                    return await this.output.parse(this.output.error('unknown_method', method));  
+                }
+            } else {
+                return await this.output.parse(this.output.error('unknown_module', (module == 'this' ? 'Invalid format' : module)));  
+            }
+        }
+        return await this.output.parse(this.output.error('malformed_param', parsed));
+    } 
+
+
+
+}
