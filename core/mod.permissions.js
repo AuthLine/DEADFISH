@@ -732,4 +732,128 @@ module.exports = class epibot_permissions_module extends epibot_module {
                 var check = (perms[i] + ',').split(',').filter((v) => v != '');
                 var result = true;
                 for (var j = 0; j < check.length; j++) {
-     
+                    var entry = check[j];
+                    if (!acl.hasOwnProperty(entry) || acl[entry] === false) {
+                        result = false;
+                        break;
+                    }
+                }
+                if (result === true) {
+                    this.output.debug('permission_granted', [type, command, check]);
+                    return true;
+                }
+            }
+        }
+
+        this.output.debug('permission_denied', [type, command, perms]);
+        this.output.debug('custom_object', ['Required Permissions', perms]);
+        this.output.debug('custom_object', ['Current Permissions:', '']);
+        this.output.debug(acl);
+        return false;
+    }
+
+    // Get permissions for the command for the specified lockdown type
+
+    async get(params) {
+
+        var schema = {
+            type:  { optional: 'string', format: 'lowercase' },
+            cmd:   { options: 'string', format: 'lowercase' },
+        }
+
+        if (!(params = this.utils.validator(params, schema))) return false; 
+
+        var [type, command] = this.utils.extract_props(params, ['type', 'cmd']);   
+        var def = default_perm.hasOwnProperty(command) ? default_perm[command] : {
+            standard: [],    
+            provider: []     
+        }
+        var permissions = await this.settings.get('permissions', command);
+        if (permissions == null) return def;
+        if (type == undefined) {
+            if (this.utils.is_object(permissions)) {
+                var sorted = {};
+                Object.keys(permissions).sort((a,b) => a > b ? 1 : -1).forEach(key => {
+                    sorted[key] = permissions[key];
+                })
+                permissions = sorted;
+            }
+            return permissions;
+        } else {
+            if (permissions.hasOwnProperty(type)) {
+                return permissions[type];
+            }        
+        }
+        return def; 
+    }
+
+    // Add permissions for the command for the specified lockdown type
+
+    async add(params) {
+
+        var schema = {
+            type:  { required: 'string', format: 'lowercase' },
+            cmd:   { required: 'string', format: 'lowercase' },
+            perms: { required: 'string', format: 'lowercase' }
+        }
+
+        if (!(params = this.utils.validator(params, schema))) return false; 
+
+        var [type, command, perms] = this.utils.extract_props(params, ['type', 'cmd', 'perms']);   
+        var def = default_perm.hasOwnProperty(command) ? default_perm[command] : {
+            standard: [],    
+            provider: []     
+        }
+
+        var perms = (perms + ',').replace(/ /g,'')
+                     .split(',')
+                     .sort((a, b) => (a < b ? -1 : 1))
+                     .filter((v) => v != '')
+                     .join(',')
+        var permissions = await this.settings.get('permissions', command, def);
+        if (!permissions.hasOwnProperty(type)) {
+            permissions[type] = [];
+        }
+        if (!permissions[type].includes(perms)) {
+            permissions[type].push(perms)
+            if (await this.settings.set('permissions', command, permissions)) {
+                return this.output.success('permissions_add', [type, command, perms]);
+            } else {
+                return this.output.error('permissions_add', [type, command, perms]);
+            }
+        } else {
+            return this.output.success('permissions_add', [type, command, perms]);
+        }
+    }
+
+    // Delete permissions for the command for the specified lockdown type
+
+    async delete(params) {
+
+        var schema = {
+            type:  { required: 'string', format: 'lowercase' },
+            cmd:   { required: 'string', format: 'lowercase' },
+            perms: { required: 'string', format: 'lowercase' }
+        }
+
+        if (!(params = this.utils.validator(params, schema))) return false; 
+
+        var [type, command, perms] = this.utils.extract_props(params, ['type', 'cmd', 'perms']);   
+        var def = default_perm.hasOwnProperty(command) ? default_perm[command] : {
+            standard: [],    
+            provider: []     
+        }
+
+
+        var perms = (perms + ',').replace(/ /g,'')
+                     .split(',')
+                     .sort((a, b) => (a < b ? -1 : 1))
+                     .filter((v) => v != '')
+                     .join(',')
+        var permissions = await this.settings.get('permissions', command, def);
+        if (!permissions.hasOwnProperty(type)) {
+            permissions[type] = [];
+        }
+        if (permissions[type].includes(perms)) {
+            permissions[type] = permissions[type].filter((v) => v != perms);
+            if (
