@@ -856,4 +856,41 @@ module.exports = class epibot_permissions_module extends epibot_module {
         }
         if (permissions[type].includes(perms)) {
             permissions[type] = permissions[type].filter((v) => v != perms);
-            if (
+            if (await this.settings.set('permissions', command, permissions)) {
+                return this.output.success('permissions_delete', [type, command, perms]);
+            } else {
+                return this.output.error('permissions_delete', [type, command, perms]);
+            }
+        } else {
+            return this.output.success('permissions_delete', [type, command, perms]);
+        }
+    }
+
+    // Set the permission set to use for this epibot instance
+
+    async set_type(params) {
+
+      var schema = {
+        type:  { required: 'string', format: 'lowercase' },
+      }
+
+      if (!(params = this.utils.validator(params, schema))) return false; 
+
+      var type = params.type;
+
+      return await this.settings.set('core', 'permissionset', type);
+
+    }
+
+    // Reset permissions
+
+    async reset() {
+
+      return await this.settings.delete('permissions');
+
+    }
+
+
+
+
+}
