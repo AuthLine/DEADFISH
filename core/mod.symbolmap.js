@@ -98,4 +98,33 @@ module.exports = class epibot_symbolmap_module extends epibot_module {
             exchange: {
                 required: 'string',
                 format: 'lowercase',
-      
+                oneof: ['ftx', 'ftxus', 'deribit', 'binance', 'binanceus', 'bitmex'],
+            },
+            symbol: {
+                required: 'string',
+                format: 'uppercase',
+            }
+        }
+
+        if (!(params = this.utils.validator(params, schema))) return false; 
+
+        var [exchange, symbol] = this.utils.extract_props(params, ['exchange', 'symbol']);
+        var exchange = exchange.toLowerCase();
+        var symbol = symbol.toUpperCase();
+        if (this.settings.delete('symbolmap:' + exchange.toLowerCase(), symbol.toUpperCase())) {
+            this.output.success('symbolmap_delete', [exchange, symbol]);
+            return true;
+        }
+        this.output.error('symbolmap_delete', [exchange, symbol]);
+        return false;
+    }
+
+
+    // Map symbol
+
+    async map(exchange, symbol) {
+        var result = await await this.settings.get('symbolmap:' + exchange, symbol.toUpperCase())
+        return (result === null ? false : result)
+    }
+
+};
