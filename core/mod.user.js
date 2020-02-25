@@ -377,3 +377,142 @@ module.exports = class epibot_user_module extends epibot_module {
 
         var email = params.email;
 
+        var uuid = await this.uuid_by_email(email);
+        if (uuid !== false)
+            return uuid;
+
+        var user = {
+            email    : String(email)
+        };
+        var result = await this.database.insertOrReplace('users',  user);
+        if (result.changes > 0) {
+            var uuid = await this.uuid_by_email(email);
+            this.output.success('multiuser_add', [uuid]);
+            return uuid;
+        }  
+        return this.output.error('multiuser_add', [email]);  
+    }
+
+    // Delete user
+
+    async delete(params) {
+
+        var schema = {
+            uuid: {
+                required: 'string',
+            },
+        }
+
+        if (!(params = this.utils.validator(params, schema))) return false; 
+
+        var uuid = params.uuid;
+        var result = await this.database.delete('users',  {uuid: uuid});
+        if (result.changes > 0) {
+            this.output.success('multiuser_delete', [uuid]);
+            return true;
+        }  
+        return this.output.error('multiuser_delete', [uuid]);  
+    }
+
+    // Reset user password (CLI Only)
+
+    async reset(params) {
+    
+        var ip = context.get('srcIp');
+
+        if (['127.0.0.1','::1'].includes(ip)) {
+    
+            var schema = {
+                email: {
+                    required: 'string',
+                },
+                password: {
+                    required: 'string'
+                }
+            }
+    
+            if (!(params = this.utils.validator(params, schema))) return false; 
+    
+            var [email, password] = this.utils.extract_props(params, ['email', 'password']);
+
+            var useruuid = await this.uuid_by_email(email);
+            if (useruuid !== false) {
+                var encr_pass = JSON.stringify(await this.encryption.encrypt(password, useruuid));
+                var result = await this.database.update('users', {password: encr_pass}, {uuid: useruuid});
+                if (result.changes > 0) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            return this.output.error('local_only');         
+        }
+    }
+
+    // Get User Log
+
+    async log(params) {
+
+        if (!params.hasOwnProperty('uuid'))
+            params.uuid = context.get('uuid');
+ 
+        var schema = {
+            uuid: {
+                required: 'string',
+            },
+        }
+
+        if (!(params = this.utils.validator(params, schema))) return false; 
+
+        var uuid = params.uuid;
+        var filterstr = (params.hasOwnProperty('filters') ? params.filters : 'debug,notice,warning,error,success') + ',_';
+        var filters = filterstr.split(',');
+        if (!Array.isArray(filters) && typeof(filters) == 'string') { filters = [ filters ]; }
+        var result = await this.database.select('logs', {uuid: uuid}, 1000);
+        var output = [];
+        if (result.length > 1) {
+            for (var i = 0; i < result.length; i++) {
+                var row = result[i];
+                var date = new Date(row.timestamp);
+                row.timestamp = date.toISOString()
+                if (filters.includes(row.type)) 
+                    output.push(row);
+            }
+            return output;
+            //return result;
+        }  
+        return this.output.error('log_retrieve', [uuid]);  
+    }
+
+    // Extract UUID from params
+
+    async uuid_from_params(params) {
+        var multiuser = await this.multiuser_isenabled();
+        var core_uuid = await this.encryption.core_uuid();
+        var params_uuid = params.hasOwnProperty('uuid') ? params.uuid : (multiuser ? undefined : core_uuid);
+        var token_uuid = params.hasOwnProperty('token') ? (params.token.hasOwnProperty('uuid') ? params.token.uuid : undefined) : undefined
+        if (token_uuid != undefined) {
+            return {
+                type: 'token',
+                uuid: token_uuid
+            }
+        } else {
+            if (params_uuid != undefined) {
+                if (params_uuid == core_uuid) {
+                    return { 
+                        type: 'core',
+                        uuid: params_uuid
+                    }
+                } else {
+                    return {
+                        type: 'user',
+                        uuid: params_uuid
+                    }
+                }
+            }            
+        }
+        return false;
+    }
+  
+
+};
