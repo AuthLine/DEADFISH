@@ -1,0 +1,28 @@
+#!/bin/bash
+
+COMMAND="$@"
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+PORTCFG="$SCRIPTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+
+URL="http://127.0.0.1:$PORT/epibot"
+
+for x in "autostart" "start" "stop" "status" "debug" "upgrade" "test" "log" "branch" "dbupgrade"; do
+    if [ "$1" == "$x" ]; then
+        cd "$SCRIPTPATH"
+        PARAM="${COMMAND/$x/''}"
+        eval "./scripts/$x $PARAM"
+        cd "$CURRENTPATH"
+        exit
+    fi
+done
+
+WGETCMD="wget --no-check-certificate --method POST --header 'accept: application/json' --header 'cache-control: no-cache' --header 'Content-Type: text/plain' --body-data '$COMMAND' -qO- $URL"
+eval "$WGETCMD | jq"
