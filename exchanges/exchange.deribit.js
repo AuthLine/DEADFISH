@@ -185,4 +185,98 @@ module.exports = class epibot_exchange_deribit extends epibot_exchange_base {
                     const bid = ticker != null ? ticker.bid : null;
                     const ask = ticker != null ? ticker.ask : null;
                     const expiration = (raw_market.info.expiration_timestamp != null ? raw_market.info.expiration_timestamp : null);
-                    const contract_size = (raw_market.info.contract_size != null ? (symbol == '
+                    const contract_size = (raw_market.info.contract_size != null ? (symbol == 'BTC-PERPETUAL' ? 1 : raw_market.info.contract_size) : 1);
+                    const precision = raw_market.precision;
+                    const raw = raw_market.info;
+                    const market = new this.classes.market(id, symbol, type, base, quote, bid, ask, expiration, contract_size, precision, tvsymbol, raw)
+                    this.data.markets.push(market);
+                }
+        });
+        await this.index_markets();
+        await this.update_markets_usd_price();
+        return this.data.markets;
+    }
+
+
+    // Get open orders
+
+    async open_orders(params) {
+        var [symbol, since, limit] = this.utils.extract_props(params, ['symbol', 'since', 'limit']);
+        var currency = symbol.slice(0,3);
+        this.set_code(currency);
+        let raworders = await this.ccxt('fetch_open_orders', [symbol, since, limit, {type: 'all'}]);
+        return this.parse_orders(raworders);
+    }
+
+    // Get all order history
+
+    async all_orders(params) {
+        var [symbol, since, limit] = this.utils.extract_props(params, ['symbol', 'since', 'limit']);
+        var currency = symbol.slice(0,3);
+        this.set_code(currency);
+        let raworders1 = await this.ccxt('fetch_open_orders', [symbol, since, limit, {type: 'all'}]);
+        let raworders2 = await this.ccxt('fetch_closed_orders', [symbol, since, limit, {type: 'all'}]);
+        var raworders = this.merge_orders(raworders1, raworders2);
+        return this.parse_orders(raworders);
+    }
+
+    // Cancel orders
+
+    async cancel(params) {
+        var [symbol, id] = this.utils.extract_props(params, ['symbol', 'id']);
+        var orders = await this.open_orders({symbol: symbol});
+        if (id.toLowerCase() == 'all') {
+            let result = await this.ccxtobj.private_get_cancel_all_by_instrument({instrument_name: symbol});
+            if (String(result.result) >= 0) {
+                orders.forEach((order, idx) => {
+                    order.status = 'cancelled';
+                    orders[idx] = order;
+                })   
+            } 
+        } else {
+            orders = orders.filter(order => ['all',order.id].includes(id));
+            await orders.forEach(async (order) => {
+                var id = order.id;
+                if (['market','limit'].includes(order.type)) {
+                    await this.ccxtobj.private_get_cancel({'order_id': id});
+                }
+            });
+            orders.forEach((order, idx) => {
+                order.status = 'cancelled';
+                orders[idx] = order;
+            })    
+        }
+        return orders;
+    }
+
+
+    // Parse CCXT order format into epibot order format
+
+    parse_order(order) {
+        if (order instanceof this.classes.order) {
+            return order;
+        }
+        const symbol = order.symbol;
+        const market = this.data.markets_by_symbol[symbol];
+        const id = order.id;
+        const timestamp = order.timestamp;
+        const direction = order.side;
+        const trigger = ((order.type.slice(0,4) == 'stop') && (order.info.stop_price != undefined) ? order.info.stop_price : null);
+        const market_price = (direction == 'buy' ? market.ask : market.bid);
+        const price = (order.price != null ? order.price : (trigger != null ? trigger : null))
+        const size_base = order.amount / price;
+        const size_quote = order.amount;
+        const filled_base = order.filled / price;
+        const filled_quote = order.filled;
+        var type = order.type.toLowerCase();
+        switch (type) {
+            case 'take_profit'   :  type = (price != trigger ? 'takeprofit_limit' : 'takeprofit_market');
+                                    break;
+        }
+        const status = order.status.replace('canceled', 'cancelled').replace('untriggered', 'open');   // Fix spelling error
+        const raw = order.info;
+        return new this.classes.order(market, id, timestamp, type, direction, price, trigger, size_base, size_quote, filled_base, filled_quote, status, raw);
+    }
+
+
+}
