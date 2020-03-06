@@ -86,4 +86,80 @@ module.exports = {
         order_cancel:       'Successfully cancelled order {0}',
         orders_cancel:      '{0} Order(s) cancelled',
         order_queued:       'Order added to queue: {0}',
-        order_check:        'Double-checked that order wa
+        order_check:        'Double-checked that order was created on exchange: {0}',
+        symbol_mapping:     'Using symbol mapping: {0}: {1} => {2}',
+        tvsymbolmap_map:    'TradingView syminfo.tickerid mapping: {0}: {1} => {2}',
+        whitelist_disabled: 'Whitelist verification is disabled',
+        whitelist_enabled:  'Whitelist verification is enabled',
+        whitelist_verify:   'API Access Granted: {0} is whitelisted',
+        database_type:      'Database Type:  {0}',
+        database_name:      'Database Name:  {0}',
+        position_nopotential:'No open positions or orders on {0}',
+
+    },
+
+    warning: {
+
+        unhandled_exception: 'Unhandled Exception: {0}: {1}',
+        testnet_not_avail:  'The exchange {0} does not have a testnet, using mainnet instead.',
+        order_over_maxsize: 'The order size of {0} would exceed maxsize. Adjusting order size to {1}.',
+        order_rel_close:    'The relative decrease requested is greater than your current position, closing position.',
+        order_will_flip:    'The provided order sizing results in a position flip from {0} to {1}',
+        order_flip_price:   'The {0} parameter was changed from {1} to {2}',
+        maxsize_disabled:   'Warning ({0}/{1}): You have disabled the maxsize parameter requirement. You do so at your own risk!',
+        config_get:          'Setting not configured: {0}',
+        order_retry_wait:   'Order failed, waiting {0} seconds before retrying...',
+        order_retry_num:    'Retrying order (Retry {0} of {1})...',
+        order_submit:       'Order submission failed: {0}',
+    },
+
+    error: {
+
+        required_param:     'Parameter Required: {0}',  
+        required_oneof:     'At least one of the following parameters is required: {0}',  
+        param_val_oneof:    'The {0} parameter should be one of {1}',
+        incorrect_type:     'Incorrect Type: {0}, Expected: {1}, Actual: {2}',  
+        malformed_param:    'Malformed Parameter: {0}', 
+        unknown_module:     'Unknown Module: {0}',
+        unknown_method:     'Unknown Command: {0}',
+        unknown_stub:       'Unknown Account: {0}. Please use accounts:add to add the account.',      
+        unknown_market:     'Unknown Market: {0}. Please ensure that the market symbol is listed in \'trade:<stub>:markets\'.',      
+        local_only:         'This command can only be executed from the CLI.',
+        unhandled_exception: 'Unhandled Exception: {0}: {1}',
+
+        permissions_check:  'Permission denied for command using {0} permission set: {1}',
+        permissions_add:    'Failed to add permissions: {0}:{1} => {2}',
+        permissions_delete: 'Failed to delete permissions: {0}:{1} => {2}',
+        permissions_denied: 'Execute permission denied using {0} permission set: {1}',
+
+        account_retrieve:   'Failed to retrieve account(s): {0}',
+        account_create:     'Failed to create account: {0}',
+        account_update:     'Failed to update account: {0}',
+        account_delete:     'Failed to delete account: {0}',
+        account_test:       'Cannot connect using these account settings',
+        binance_req_type:   'The Binance exchange requires the type parameter (type=spot or type=futures)',
+
+        encryption_failed:  'Failed to encrypt data',
+        decryption_failed:  'Failed to decrypt data',
+
+        cache_flush:        'Failed to flush cache',
+
+        whitelist_get:      'Failed to get IP address(es) from the whitelist: {0}',
+        whitelist_add:      'Failed to add IP address to the whitelist: {0}',
+        whitelist_delete:   'Cannot delete IP address from the whitelist: {0}',
+        whitelist_verify:   'API Access Denied: {0} is not whitelisted',
+        whitelist_enable:   'Failed to enable whitelist verification',
+        whitelist_disable:  'Failed to disabled whitelist verification',
+
+        symbolmap_get:      'Failed to retrieve symbol mapping: {0}: {1}',
+        symbolmap_add:      'Failed to add symbol mapping: {0}: {1} => {2}',
+        symbolmap_delete:   'Failed to delete symbol mapping: {0}: {1}',
+        tvsymbolmap_map:    'Failed to map TradingView syminfo.tickerid: {0}',
+    
+        convert_size_usd:   'Size provided in USD, but cannot find a pair to use for conversion',
+        order_submit:       'Order submission failed: {0}',
+        order_size_nan:     'Could not determine order size: {0}',
+        order_size_unknown: 'Could not determine the size of the order',
+        order_side_unknown: 'Unable to determine side for order',
+        order_too_small:    'Order size is smaller than the minimum size supported by the exchange',
+        factor_only_size:   '% or X sizing only allowed on the size parameter',
