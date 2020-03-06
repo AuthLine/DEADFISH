@@ -206,4 +206,127 @@ class epibot_websocket_client extends EventEmitter {
           return this.terminate();
         }
     
-        t
+        this.pingAt = +new Date;
+    //    this.sendMessage({op: 'ping'});
+      }
+    
+      // note: when this method returns
+      // we do not know what auth status is
+      // since FTX doesn't ACK
+      */
+
+  messagehandler (e) {
+    this.lastMessageAt = +new Date ();
+    let payload;
+
+    try {
+      payload = JSON.parse (e.data);
+    } catch (e) {
+      console.error ('Websocket sent bad json', e.data);
+    }
+
+    //payload.stub = 'STUB' + this.stub;
+    payload.epibot = {
+      exchange: this.exchange,
+      stub: this.stub,
+    };
+
+    /*
+        if (payload.id != undefined) {
+            const request = this.findRequest(payload.id);
+
+            if(!request) {
+            return console.error('received response to request not send:', payload);
+            }
+        }
+        */
+
+    global.epibot._modules_.websocket.message (payload);
+  }
+
+  toId (type, channel, market) {
+    return type + '|' + channel + (!market ? '' : '|' + market);
+  }
+
+  async sendMessage (payload) {
+    if (!this.connected) {
+      if (!this.reconnecting) {
+        throw new Error ('Not connected.');
+      }
+
+      await this.afterReconnect;
+    }
+    this.ws.send (JSON.stringify (payload));
+  }
+
+  async subscribe (type, channel, market = undefined) {
+    const id = this.toId (type, channel, market);
+    if (!this.connected) {
+      if (!this.reconnecting) {
+        throw new Error ('Not connected.');
+      }
+
+      await this.afterReconnect;
+    }
+
+    /*
+    if (this.subscriptions.hasOwnProperty(id)) {
+        return console.error (
+        new Date (),
+        'refusing to channel subscribe twice',
+        market,
+        channel
+      );
+    }
+    */  
+
+    const sub = {
+      id,
+      type,
+      channel,
+      market,
+      doneHook: false,
+      done: false,
+    };
+
+    this.subscriptions[id] = sub;
+    this._subscribe (sub);
+
+    return sub.done;
+  }
+
+  async unsubscribe (type, channel, market = undefined) {
+    const id = this.toId (type, channel, market);
+
+    if (!this.connected) {
+      if (!this.reconnecting) {
+        throw new Error ('Not connected.');
+      }
+
+      await this.afterReconnect;
+    }
+
+    const sub = {
+      id,
+      type,
+      channel,
+      market,
+      doneHook: false,
+      done: false,
+    };
+
+    if (this.subscriptions.hasOwnProperty(id)) {
+        this._unsubscribe (sub);
+        delete this.subscriptions[id];
+    }
+
+    return sub.done;
+  }
+
+}
+
+
+module.exports = {
+  base: epibot_websocket_base,
+  client: epibot_websocket_client,
+};
