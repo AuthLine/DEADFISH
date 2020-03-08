@@ -163,3 +163,88 @@ module.exports = {
         order_side_unknown: 'Unable to determine side for order',
         order_too_small:    'Order size is smaller than the minimum size supported by the exchange',
         factor_only_size:   '% or X sizing only allowed on the size parameter',
+        order_over_maxsize: 'The order size of {0} would exceed maxsize.',
+        order_check:        'Exchange submission succesfull, but no order was created: {0}',
+
+        orders_retrieve:    'There was an error retrieving orders',
+        order_cancel:       'Failed to cancel order {0}',
+        orders_cancel:      'There was an error cancelling orders',
+        order_size_exceeds: 'Already {0} more than requested',
+        order_size_rel:     'Relative sizing (+/-) not permitted on {0} orders',
+        order_rel_req_max:  'When using relative sizes on {0} orders, the maxsize parameter is required',
+        order_scale_nopos:  'You cannot use the scale parameter because do not have a position on {0}',
+
+        position_retrieve:  'You do not have a position on {0}',
+        positions_retrieve: 'There was an error retrieving positions',
+        position_none:      'You do not currently have a position on {0}',
+        position_maxposqty: 'Maximum positions on {0} reached: {1} positions',
+        position_ignoresym: 'Symbol {0} is on the ignore list for stub {1}',
+
+        balances_retrieve:   'There was an error retrieving balances',
+
+        market_retrieve:     'Could not retrieve market info for {0}',
+        markets_retrieve:    'There was an error retrieving markets',
+
+        leverage_set:        'Unable to set leverage for symbol {0}',
+        leverage_unsupported:'Setting leverage on this exchange is not currently supported',
+
+        multiuser_mysql_req: 'Multi-tenant mode requires MySQL/MariaDB database',
+        multiuser_enable:    'Failed to enable multi-user support',
+        multiuser_disable:   'Failed to disable multi-user support',
+        multiuser_add:       'Failed to add user: {0}',
+        multiuser_delete:    'Failed to delete user: {0}',
+        user_exists:         'The user already exists: {0}',
+        user_register:       'Failed to reigster user: {0}',
+        user_auth:           'User authentication failed: {0}',
+        invalid_token:       'Invalid token provided',
+
+        config_invalid_key:  'Invalid config key: {0}',
+        config_invalid_value:'Invalid value for {0} (Must be {1})',
+        config_invalid_stub: 'Invalid stub supplied: {0}',
+        config_invalid_symbol:'Invalid symbol supplied: {0}',
+        config_core_localonly:'Core settings can only be configured from locahost: {0}',
+        config_set:          'Failed to configure setting: {0}: {1}',
+
+        gui_enable:          'Failed to enable GUI',
+        gui_disable:         'Failed to disable GUI',
+        gui_recaptcha:       'Recaptcha verification failed: Score: {0}',
+
+        add_provider:        'Failed to add signal provider: {0}',
+        add_provider_admin:  'Failed to add admin {1} to signal provider: {0}',
+        add_provider_exch:   'Failed to add {1} exchange to signal provider: {0}',
+        add_provider_ip:     'Failed to whitelist IP {1} for signal provider: {0}',
+        del_provider_admin:  'Failed to remove admin {1} from signal provider: {0}',
+        del_provider_exch:   'Failed to remove {1} exchange from signal provider: {0}',
+        del_provider_ip:     'Failed to remove whitelisted IP {1} from signal provider: {0}',
+        invalid_provider:    'Invalid provider UUID: {0}',
+        invalid_user:        'Invalid user UUID: {0}',
+        exch_not_supported:  'Signal provider does not support exchange: {0}',
+        no_accounts:         'No {0} accounts configured: Provider: {1}, User: {2}',
+        add_signal_admin:    'Failed to add user {1} as an admin for provider {0}',
+        del_signal_admin:    'Failed to remove user {1} as an admin for provider {0}',
+
+        log_retrieve:        'Failed to retrieve log for user {0}',
+
+        init_exchange_nouuid: 'Cannot initialize exchange: Undefined UUID.',
+        init_exchange_nostub: 'Cannot initialize exchange: Undefined stub.',
+        
+    },
+
+    success: {
+
+        account_retrieve:   'Account(s) retrieved successfully: {0}',
+        account_create:     'Account created successfully: {0}',
+        account_update:     'Account updated successfully: {0}',
+        account_delete:     'Account deleted successfully: {0}',
+        account_test:       'Successfully tested account settings',
+
+        permissions_add:    'Permissions added successfully: {0}:{1} => {2}',
+        permissions_delete: 'Permissions removed successfully: {0}:{1} => {2}',
+
+        cache_flush:        'Successfully flushed cache: {0} items deleted',
+        cache_stats:        'Sucessfully retrieved cache stats: {0}',
+
+        whitelist_add:      'Added IP address to the whitelist: {0}',
+        whitelist_delete:   'Deleted IP address from the whitelist: {0}',
+        whitelist_enable:   'Successfully enabled whitelist verification',
+       
