@@ -247,4 +247,49 @@ module.exports = {
         whitelist_add:      'Added IP address to the whitelist: {0}',
         whitelist_delete:   'Deleted IP address from the whitelist: {0}',
         whitelist_enable:   'Successfully enabled whitelist verification',
-       
+        whitelist_disable:  'Successfully disabled whitelist verification',
+
+        symbolmap_add:      'Added symbol mapping: {0}: {1} => {2}',
+        symbolmap_delete:   'Deleted symbol mapping: {0}: {1}',
+
+        order_submit:       'Order submitted successfully: {0}',
+        orders_retrieve:    '{0} Order(s) retrieved',
+
+        position_retrieve:  'Successfully retrieved position on {0}',
+        positions_retrieve: '{0} Positions(s) retrieved',
+
+        balances_retrieve:  '{0} Balances(s) retrieved',
+
+        market_retrieve:    'Successfully retrieved market info for {0}',
+        markets_retrieve:   '{0} Markets(s) retrieved',
+
+        leverage_set:        'Successfully set leverage for symbol {0} to {1}x ({2})',
+
+        config_get:         'Successfully retrieved setting: {0}',
+        config_set:         'Successfully configured setting: {0}: {1}',
+
+        multiuser_enable:   'Successfully enabled multi-user support',
+        multiuser_disable:  'Successfully disabled multi-user support',
+        multiuser_add:      'Added user: {0}',
+        multiuser_delete:   'Deleted user: {0}',
+        user_register:      'Successfully registered user: {0}',
+        user_auth:          'User authenticated successfully: {0}',
+
+        gui_enable:          'Successfully enabled GUI',
+        gui_disable:         'Successfully disabled GUI',
+        gui_recaptcha:       'Recaptcha verification succeeded: Score: {0}',
+
+        add_provider:        'Successfully added signal provider: {0}',
+        add_provider_admin:  'Successfully added admin {1} to signal provider: {0}',
+        add_provider_exch:   'Successfully added {1} exchange to signal provider: {0}',
+        add_provider_ip:     'Successfully whitelisted IP {1} for signal provider: {0}',
+        del_provider_admin:  'Successfully removed admin {1} from signal provider: {0}',
+        del_provider_exch:   'Successfully removed {1} exchange from signal provider: {0}',
+        del_provider_ip:     'Successfully removed whitelisted IP {1} from signal provider: {0}',
+        signal_queued:       'Signal Queued: Provider: {0}, User: {1}',
+        add_signal_admin:    'Added user {1} as an admin for provider {0}',
+        del_signal_admin:    'Removed user {1} as an admin for provider {0}',
+
+    }
+    
+}
