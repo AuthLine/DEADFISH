@@ -1,0 +1,68 @@
+
+#!/bin/bash
+
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+PORTCFG="$ROOTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+BRANCH=`echo "$@"`
+
+cd "$SCRIPTPATH" &
+cd ../ &
+
+echo "Switching epibot branch to $BRANCH..."
+if [ ! "$PID" == "" ]; then
+  ./scripts/stop
+  while [ ! "$PID" == "" ]; do
+    sleep 2
+    PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+  done
+  echo "Epibot server has stopped"
+  cd "$CURRENTPATH" &
+  DOSTART="true"
+else
+  DOSTART="false"
+fi
+echo "Creating a backup..."
+TS=`date +%s`
+sudo tar czvf ~/$TS.tar.gz /usr/local/epibot-js  > /dev/null 2>&1
+mkdir -p "/tmp/$TS"
+sudo cp ./database/database.* /tmp/$TS/
+sudo cp ./.dbcfg /tmp/$TS/
+sudo cp ./.port /tmp/$TS/
+sudo cp ./.proxy /tmp/$TS/
+echo "Switching branch..."
+#sudo git stash
+sudo git stash 
+sudo git checkout $BRANCH
+sudo git pull -f
+sudo cp -f /tmp/$TS/database.* database/
+sudo cp -f /tmp/$TS/.dbcfg ./.dbcfg
+sudo cp -f /tmp/$TS/.port ./.port
+sudo cp -f /tmp/$TS/.proxy ./.proxy
+echo "Updating MOTD"
+sudo cp -f /usr/local/epibot-js/scripts/motd /etc/motd
+echo "Installing outstanding NodeJS modules"
+sudo npm install --unsafe-perm > /dev/null 2>&1
+echo "Updating existing NodeJS modules"
+sudo npm upgrade > /dev/null 2>&1
+if [ "$DOSTART" == "true" ]; then
+  ./scripts/start
+  while [ "$PID" == "" ]; do
+    sleep 2
+    PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+  done
+  echo "The Epibot server has started"
+fi
+
+echo "Completed switching to $BRANCH"
+
+cd "$CURRENTPATH" &

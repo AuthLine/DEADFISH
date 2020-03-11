@@ -1,0 +1,15 @@
+
+#!/bin/bash
+
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+STARTSCRIPT="$ROOTPATH/epibot"
+
+sudo crontab -l | grep -iv "$STARTSCRIPT" | grep -iv "no crontab" > /tmp/tmpcron
+sudo sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' /tmp/tmpcron
+sudo echo "@reboot $STARTSCRIPT start > /dev/null 2>&1" >> /tmp/tmpcron
+sudo crontab /tmp/tmpcron
+sudo rm /tmp/tmpcron 
+
+echo "Epibot will now start automatically when the server is rebooted"

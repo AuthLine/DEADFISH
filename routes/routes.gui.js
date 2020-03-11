@@ -29,4 +29,40 @@ Object.keys(api).forEach(baseapi => {
                 const routes = api.hasOwnProperty(baseapi) ? api[baseapi] : null
                 if (routes != null) break;
             }
-            const routeinfo = [req.method.toLowerCas
+            const routeinfo = [req.method.toLowerCase(), route].join('|')
+
+            if (routes.hasOwnProperty(routeinfo)) {
+                var command = {command: routes[routeinfo]}
+            }
+
+            if (req.rawBody !== undefined) {
+                var body = core.parse_raw(req.rawBody)
+            } else {
+                var body = req.body
+            }
+
+            var params = {
+                body: {...command, ...req.params, ...req.query, ...body},
+            }
+
+            // Get Remote Address 
+
+            var ip = global.epibot._modules_['core'].remote_ip(req);
+
+            var uuid = params.hasOwnProperty('uuid') ? params.uuid : (params.hasOwnProperty('body') && params.body.hasOwnProperty('uuid') ? params.body.uuid : null);
+            var token = params.hasOwnProperty('token') ? params.token : (params.hasOwnProperty('body') && params.body.hasOwnProperty('token') ? params.body.token : null);
+
+            if (await core.verify_access(ip, uuid, token, params)) {
+            //if (await core.verify_access(uuid, ip)) {
+                return await core.execute(params, {req : req, res : res });  // Works sliently different to the API
+                //res.send(result);
+            } else {
+                res.sendStatus(401);       // HTTP 401: Unauthorized;
+            }        
+        })
+
+    }
+
+})
+
+module.exports = router;

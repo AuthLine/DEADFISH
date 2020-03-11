@@ -1,0 +1,6 @@
+#/bin/bash
+
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")" | sed -e 's/\/scripts//g'`
+PARAMS=`echo "$@" | xargs`
+eval "tail $PARAMS $SCRIPTPATH/log/epibot.log"

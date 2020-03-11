@@ -1,0 +1,24 @@
+#/bin/bash
+
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+PORTCFG="$ROOTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+
+if [ ! "$PID" == "" ]; then
+        echo "An Epibot server is already running on port $PORT (PID: $PID)"
+else
+        echo "Starting your Epibot Server on port $PORT in DEBUG mode..."
+        cd "$SCRIPTPATH" &
+        cd ../ &
+	sudo npm start
+	cd "$CURRENTPATH" &
+fi

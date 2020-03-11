@@ -1,0 +1,40 @@
+#/bin/bash
+
+CURRENTPATH=`pwd`
+
+echo "Epinnox Bot install started" 
+
+echo "Updating package manager..."
+export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_PRIORITY=critical
+sudo -E apt-get -qy update >> /tmp/install.log 2>&1
+
+echo "Installing prerequisite packages for the Epinnox Automated Bot..."
+sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" install nodejs npm jq wget git sqlite3 >> /tmp/install.log 2>&1
+
+echo "Cloning Epibot Github repository..."
+sudo mkdir -p /usr/local && cd /usr/local/
+sudo git clone https://github.com/Epinnox/epibot.git epibot-js >> /tmp/install.log 2>&1
+
+echo "Setting permissions..."
+cd /usr/local/epibot-js
+sudo chgrp $USER -R /usr/local/epibot-js >> /tmp/install.log 2>&1
+sudo npm install --unsafe-perm >> /tmp/install.log 2>&1
+
+echo "Creating epibot command shortcut..." 
+sudo rm -Rf /usr/bin/epibot
+sudo ln -s /usr/local/epibot-js/epibot /usr/bin/epibot >> /tmp/install.log 2>&1
+
+epibot start
+epibot autostart
+
+cd "$CURRENTPATH" &
+
+echo "The epibot installation is complete`!"
+echo ""
+echo "You can start the server using this command:   epibot start"
+echo "You can stop the server using this command:    epibot stop"
+echo "You can upgrade the server using this command: epibot upgrade"
+echo ""
+
+
