@@ -1,0 +1,34 @@
+
+#/bin/bash
+
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+PORTCFG="$ROOTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+
+PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+
+if [ ! "$PID" == "" ]; then
+        echo "The Epibot server is already running on port $PORT (PID: $PID)"
+else
+        echo "Now starting the Epibot Server..."
+        cd "$SCRIPTPATH" &
+        cd ../ &
+        ./scripts/dbupgrade
+        # echo "Checking for required NodeJS modules..."
+        # sudo npm install > /dev/null 2>&1
+	sudo npm start > /dev/null 2>&1 &
+        while [ "$PID" == "" ]; do
+                sleep 2
+                PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+        done
+        echo "The Epibot server has started on port $PORT"        
+	cd "$CURRENTPATH" &
+fi

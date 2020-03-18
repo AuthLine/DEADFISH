@@ -1,0 +1,19 @@
+#/bin/bash
+
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+PORTCFG="$ROOTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+
+if [ ! "$PID" == "" ]; then
+        echo "The epibot server is running on port $PORT (PID: $PID)"
+else
+        echo "The epibot server is not running"
+fi

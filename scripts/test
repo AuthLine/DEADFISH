@@ -1,0 +1,53 @@
+
+#!/bin/bash
+
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+PORTCFG="$ROOTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+TESTS=`echo "$@" | xargs | sed -e 's/,/ /g'`
+
+cd "$SCRIPTPATH" &
+
+echo "Starting epibot unit testing"
+if [ ! "$PID" == "" ]; then
+  ./scripts/stop
+  while [ ! "$PID" == "" ]; do
+    sleep 2
+    PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+  done
+  cd "$CURRENTPATH" &
+  DOSTART="true"
+else
+  DOSTART="false"
+fi
+echo "The epibot server stopped successfully, proceeding with tests"
+if [ "$TESTS" == "" ]; then
+  sudo npm test
+else
+  FILES=""
+  for x in $TESTS; do
+    FILE="$SCRIPTPATH/test/test.mod.$x.js"
+    if [ -f "$FILE" ]; then
+      FILES="$FILES $FILE"
+    fi
+  done;
+  sudo npm test $FILES
+fi
+if [ "$DOSTART" == "true" ]; then
+  ./scripts/start
+  while [ "$PID" == "" ]; do
+    sleep 2
+    PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+  done
+fi
+echo "Unit tests completed"
+
+cd "$CURRENTPATH" &

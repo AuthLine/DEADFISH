@@ -1,0 +1,25 @@
+
+#/bin/bash
+
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+PORTCFG="$ROOTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+
+if [ ! "$PID" == "" ]; then
+        echo "Now stopping the epibot server on port $PORT (PID: $PID)..."
+	cd "$SCRIPTPATH" &
+        cd ../ &
+        sudo kill $PID > /dev/null 2>&1 &
+        cd "$CURRENTPATH" &
+else
+	echo "The epibot server has not been started"
+fi

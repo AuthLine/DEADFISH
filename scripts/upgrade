@@ -1,0 +1,73 @@
+#!/bin/bash
+
+CURRENTPATH=`pwd`
+SCRIPTPATH=`dirname "$(readlink -f "$0")"`
+ROOTPATH=`dirname "$SCRIPTPATH"`
+PORTCFG="$ROOTPATH/.port"
+
+if [ -f "$PORTCFG" ]; then
+    PORT=`cat $PORTCFG`
+else
+    PORT=80
+fi
+
+PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+
+cd "$SCRIPTPATH" &
+cd ../ &
+
+echo "Checking for updates..."
+#sudo git checkout stable > /dev/null 2>&1
+sudo git fetch > /dev/null 2>&1
+CHECK=`sudo git status | grep "up to date" | wc -l`
+
+if [ "$CHECK" -eq "1" ]; then
+  echo "epibot is up to date, no upgrade is required"
+else
+  echo "epibot updates available, proceeding with upgrade"
+  if [ ! "$PID" == "" ]; then
+    ./scripts/stop
+    while [ ! "$PID" == "" ]; do
+      sleep 2
+      PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+    done
+    cd "$CURRENTPATH" &
+    DOSTART="true"
+  else
+    DOSTART="false"
+  fi
+  TS=`date +%s`
+  echo "The epibot server stopped successfully, upgrading now"
+  echo "Creating a backup..."
+  sudo tar czvf ~/$TS.tar.gz /usr/local/epibot-js  > /dev/null 2>&1
+  mkdir -p "/tmp/$TS"
+  sudo cp ./database/database.* /tmp/$TS/
+  sudo cp ./.dbcfg /tmp/$TS/
+  sudo cp ./.port /tmp/$TS/
+  sudo cp ./.proxy /tmp/$TS/
+  echo "Updating Epibot files from Github"
+  #sudo git checkout stable > /dev/null 2>&1
+  sudo git stash 
+  sudo git pull -f
+  sudo cp -f /tmp/$TS/database.* database/
+  sudo cp -f /tmp/$TS/.dbcfg ./.dbcfg
+  sudo cp -f /tmp/$TS/.port ./.port
+  sudo cp -f /tmp/$TS/.proxy ./.proxy
+  ./scripts/dbupgrade
+  echo "Updating MOTD"
+  sudo cp -f /usr/local/epibot-js/scripts/motd /etc/motd
+  echo "Installing outstanding NodeJS modules"
+  sudo npm install --unsafe-perm > /dev/null 2>&1
+  echo "Updating existing NodeJS modules"
+  sudo npm upgrade > /dev/null 2>&1
+  if [ "$DOSTART" == "true" ]; then
+    ./scripts/start
+    while [ "$PID" == "" ]; do
+      sleep 2
+      PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+    done
+    echo "epibot server started"
+  fi
+  echo "Upgrade complete"
+fi
+cd "$CURRENTPATH" &
