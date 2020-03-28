@@ -1,0 +1,164 @@
+
+#epibot-logo {
+    margin-top: 10px;
+    height: 50px;
+}
+
+#poweredby {
+    position: absolute;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    height: 40px;
+    z-index: 8000 !important;
+}
+
+#epibot-notifications {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 9000 !important;
+}
+
+#contentmain {
+    min-width: 950px;
+    max-width: 950px;
+    width: 950px;
+}
+
+#mainmenu {
+    width: 80px;
+}
+
+.epibot-tab-content {
+    margin: 10px;
+}
+
+.epibot-form-label {
+    width: 80px;
+}
+
+.epibot-form-label-lg {
+    width: 120px;
+}
+
+.epibot-input {
+    border: solid 1px #AAAAAA;
+}
+
+.epibot-input-lg {
+    width: 500px;
+    border: solid 1px #AAAAAA;
+}
+
+.epibot-input-md {
+    width: 300px;
+    border: solid 1px #AAAAAA;
+}
+
+.epibot-input-sm {
+    width: 150px;
+    border: solid 1px #AAAAAA;
+}
+
+.epibot-button-sm {
+    width: 110px;
+}
+
+.epibot-button-md {
+    width: 170px;
+}
+
+.epibot-qrcode {
+    width: 225px;
+    height: 225px;
+    margin-bottom: 10px;
+    border: solid 1px #444444;
+}
+
+.epibot-panel-header {
+    height: 50px;
+    vertical-align: middle;
+    background-color: #DDDDDD;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    padding-left: 14px;
+    padding-top: 10px;
+    padding-bottom: 5px;
+    font-weight: bold;
+    font-size: 14pt;
+    color: #444444;
+    font-family: var(--bs-font-sans-serif);
+}
+
+.epibot-panel-content {
+    /*padding-top: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-bottom: 0px;*/
+    /*padding: 10px !important;*/
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.epibot-panel {
+    background-color: #EEEEEE;
+    border: solid 1px #c5c5c5;
+    border-radius: 5x;
+    padding: 0px;
+    margin: 0px;
+}
+
+.jqx-menu-item-top {
+    font-size: 14pt;
+    font-family: var(--bs-font-sans-serif);
+}
+
+.epibot-navbutton {
+    padding: 2px;
+    border : none;
+    width: 80px;
+    color: #444444;
+}
+
+.epibot-table-action {
+    height: 16px;
+    width: 16px;
+}
+
+.epibot-nav-left {
+    width : 90px;
+}
+
+.tab-content {
+    background-color: #EEEEEE;
+    margin : 10px;
+    border-radius: 10px;
+}
+
+.epibot-nav-title {
+    margin-left: 10px;
+}
+
+.navbar-collapse.collapse {
+    display: block!important;
+  }
+  
+.navbar-nav>li, .navbar-nav {
+    float: left !important;
+}
+
+.navbar-nav.navbar-right:last-child {
+    margin-right: -15px !important;
+}
+
+.navbar-right {
+    float: right!important;
+}
+
+.loading {
+    position: absolute;
+    right: 10px;;
+    top: 10px;;
+    z-index: 9999999999999;
+    border: none;
+}

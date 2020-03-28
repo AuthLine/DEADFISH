@@ -53,4 +53,4 @@ describe(test.title('Config Module (mod.config.js)'), function() {
     });
 
 
-}
+});
