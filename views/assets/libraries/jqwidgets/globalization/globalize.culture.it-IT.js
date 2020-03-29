@@ -1,7 +1,8 @@
+
 /* tslint:disable */
 /* eslint-disable */
 /*
- * Globalize Culture de-DE
+ * Globalize Culture it-IT
  *
  * http://github.com/jquery/globalize
  *
@@ -27,24 +28,24 @@ if ( typeof require !== "undefined" &&
 	Globalize = window.Globalize;
 }
 
-Globalize.addCultureInfo( "de-DE", "default", {
-	name: "de-DE",
-	englishName: "German (Germany)",
-	nativeName: "Deutsch (Deutschland)",
-	language: "de",
+Globalize.addCultureInfo( "it-IT", "default", {
+	name: "it-IT",
+	englishName: "Italian (Italy)",
+	nativeName: "italiano (Italia)",
+	language: "it",
 	numberFormat: {
 		",": ".",
 		".": ",",
-		"NaN": "n. def.",
-		negativeInfinity: "-unendlich",
-		positiveInfinity: "+unendlich",
+		"NaN": "Non un numero reale",
+		negativeInfinity: "-Infinito",
+		positiveInfinity: "+Infinito",
 		percent: {
 			pattern: ["-n%","n%"],
 			",": ".",
 			".": ","
 		},
 		currency: {
-			pattern: ["-n $","n $"],
+			pattern: ["-$ n","$ n"],
 			",": ".",
 			".": ",",
 			symbol: "€"
@@ -52,27 +53,26 @@ Globalize.addCultureInfo( "de-DE", "default", {
 	},
 	calendars: {
 		standard: {
-			"/": ".",
 			firstDay: 1,
 			days: {
-				names: ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],
-				namesAbbr: ["So","Mo","Di","Mi","Do","Fr","Sa"],
-				namesShort: ["So","Mo","Di","Mi","Do","Fr","Sa"]
+				names: ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"],
+				namesAbbr: ["dom","lun","mar","mer","gio","ven","sab"],
+				namesShort: ["do","lu","ma","me","gi","ve","sa"]
 			},
 			months: {
-				names: ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember",""],
-				namesAbbr: ["Jan","Feb","Mrz","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez",""]
+				names: ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre",""],
+				namesAbbr: ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic",""]
 			},
 			AM: null,
 			PM: null,
-			eras: [{"name":"n. Chr.","start":null,"offset":0}],
+			eras: [{"name":"d.C.","start":null,"offset":0}],
 			patterns: {
-				d: "dd.MM.yyyy",
-				D: "dddd, d. MMMM yyyy",
+				d: "dd/MM/yyyy",
+				D: "dddd d MMMM yyyy",
 				t: "HH:mm",
 				T: "HH:mm:ss",
-				f: "dddd, d. MMMM yyyy HH:mm",
-				F: "dddd, d. MMMM yyyy HH:mm:ss",
+				f: "dddd d MMMM yyyy HH:mm",
+				F: "dddd d MMMM yyyy HH:mm:ss",
 				M: "dd MMMM",
 				Y: "MMMM yyyy"
 			}
