@@ -1,0 +1,8 @@
+/*
+jQWidgets v11.0.1 (2020-Dec)
+Copyright (c) 2011-2020 jQWidgets.
+License: https://jqwidgets.com/license/
+*/
+/* eslint-disable */
+
+(function(b){var a=(function(){var c={},u,q,j,l,g,h,o,p;function d(C,B,x,A,y,v,w){var z=this;if(!z){z=window.jqx}z.hierarchy=y;z.exportFormat=v;z.filename=w;C.beginFile(w);n(C);k(C);C.endFile(w);return C.getFile()}function n(z){var x=true;b.each(q,function(){if(this.hidden){x=false;return false}});z.beginHeader(x);var w=0;for(var v in q){if(q[v].columnsDataFields){v=q[v].columnsDataFields[w].displayfield}var y=m(v,q[v]);z.appendHeaderCell(q[v],v,y,x,w);w++}z.endHeader(x)}function k(y){var x=this;if(!x){x=window.jqx}y.beginBody();if(x.hierarchy){var w=function(A){for(var z=0;z<A.length;z+=1){if(A[z]!==undefined){y.hierarchy=true;y.beginRow(A[z].level);e(y,A[z],z,true);if(A[z].records){y.beginRows(A[z].level);w(A[z].records);y.endRows(A[z].level)}y.endRow(A[z].level)}}};w(u);y.endBody();return}for(var v=0;v<u.length;v+=1){if(u[v]!==undefined){e(y,u[v],v)}}y.endBody()}function e(x,A,y,D){var C=this;if(!C){C=window.jqx}var w;if(D!=true){x.beginRow()}var B=0;for(var z in q){if(q[z].columnsDataFields){z=q[z].columnsDataFields[B].displayfield}w=s(y,z);if(w){if(w.level!=undefined){if(w.index-1>A.level&&w.index-1<w.maxLevel){B++;continue}}if(w.maxLevel!=undefined){if(w.index-1==w.maxLevel){w=b.extend({},w);w.merge=w.maxLevel-A.level-1}}}if(A.level!=undefined&&A.label!=undefined){if(C.exp
