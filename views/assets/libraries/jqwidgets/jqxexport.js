@@ -2883,3 +2883,614 @@ ${attr.formula}        </cfRule>
             }
             else {
                 siblingGroups[parentKey].push(currentRecord);
+            }
+        }
+
+        if (startIndex) {
+            for (let i = 0; i < startIndex; i++) {
+                processedData.push(Object.assign({}, data[i]));
+
+                if (['json', 'pdf', 'xml'].indexOf(format) === -1) {
+                    processedData[i]._level = 1;
+                }
+            }
+        }
+
+        if (format !== 'json' && format !== 'xml') {
+            process(null, 1, false);
+        }
+        else {
+            processJSONXML(null, 1, processedData);
+        }
+
+        if (!actualHierarchy) {
+            that.actualHierarchy = false;
+        }
+
+        that.maxLevel = maxLevel;
+        return processedData;
+    }
+
+    /**
+     * Processes nested hierarchical data.
+     */
+    processNestedData(data, format, startIndex) {
+        const that = this,
+            processedData = [];
+        let maxLevel = 0,
+            actualHierarchy = false;
+
+        function process(start, children, level, collapsed) {
+            maxLevel = Math.max(maxLevel, level);
+
+            for (let i = start; i < children.length; i++) {
+                const currentRecord = Object.assign({}, children[i]);
+
+                currentRecord._collapsed = collapsed;
+                currentRecord._level = level;
+                processedData.push(currentRecord);
+
+                if (currentRecord.children && currentRecord.children.length > 0) {
+                    actualHierarchy = true;
+                    currentRecord._expanded = currentRecord._expanded !== undefined ? currentRecord._expanded : true;
+                    process(0, currentRecord.children, level + 1, collapsed || !currentRecord._expanded);
+                }
+
+                delete currentRecord.children;
+            }
+        }
+
+        function processJSONXML(start, children, rows, level) {
+            maxLevel = Math.max(maxLevel, level);
+
+            for (let i = start; i < children.length; i++) {
+                const currentRecord = Object.assign({}, children[i]);
+
+                if (level === 1) {
+                    processedData[i] = currentRecord;
+                }
+                else {
+                    rows[i] = currentRecord;
+                }
+
+                if (currentRecord.children && currentRecord.children.length > 0) {
+                    actualHierarchy = true;
+                    currentRecord.rows = [];
+                    processJSONXML(0, currentRecord.children, currentRecord.rows, level + 1);
+                }
+
+                delete currentRecord.children;
+            }
+        }
+
+        if (startIndex) {
+            for (let i = 0; i < startIndex; i++) {
+                processedData.push(Object.assign({}, data[i]));
+
+                if (['json', 'pdf', 'xml'].indexOf(format) === -1) {
+                    processedData[i]._level = 1;
+                }
+            }
+        }
+
+        if (format !== 'json' && format !== 'xml') {
+            process(startIndex, data, 1, false);
+        }
+        else {
+            processJSONXML(startIndex, data, undefined, 1);
+        }
+
+        if (!actualHierarchy) {
+            that.actualHierarchy = false;
+        }
+
+        that.maxLevel = maxLevel;
+        return processedData;
+    }
+
+    /**
+     * Processes row styles.
+     */
+    processRowStyle(style) {
+        const that = this,
+            rowsDefinition = style.rows;
+
+        that.rowHeight = [];
+
+        if (!rowsDefinition) {
+            return;
+        }
+
+        const startIndex = that.xlsxStartIndex;
+
+        function applyToRowCells(row, prop, value) {
+            for (let j = 0; j < that.columnsArray.length; j++) {
+                const currentCell = that.columnsArray[j] + (row + 1 + startIndex);
+
+                that.storeCellStyle(currentCell, prop, value);
+            }
+        }
+
+        if (rowsDefinition.height) {
+            that.defaultRowHeight = ` ht="${parseFloat(rowsDefinition.height) / 2}"`;
+        }
+
+        for (let i = startIndex; i < that.data.length; i++) {
+            const row = i - startIndex;
+
+            for (let prop in rowsDefinition) {
+                if (rowsDefinition.hasOwnProperty(prop) &&
+                    prop.indexOf('alt') === -1 &&
+                    isNaN(prop) &&
+                    prop !== 'height') {
+                    applyToRowCells(row, prop, rowsDefinition[prop]);
+                }
+            }
+
+            if (rowsDefinition.alternationCount &&
+                (((rowsDefinition.alternationStart === undefined || row >= rowsDefinition.alternationStart) &&
+                    (rowsDefinition.alternationEnd === undefined || row <= rowsDefinition.alternationEnd)) ||
+                    rowsDefinition.alternationStart === rowsDefinition.alternationEnd)) {
+                const start = rowsDefinition.alternationStart || 0,
+                    i = (row - start) % rowsDefinition.alternationCount;
+
+                if (rowsDefinition[`alternationIndex${i}Color`]) {
+                    applyToRowCells(row, 'color', rowsDefinition[`alternationIndex${i}Color`]);
+                }
+
+                if (rowsDefinition[`alternationIndex${i}BorderColor`]) {
+                    applyToRowCells(row, 'borderColor', rowsDefinition[`alternationIndex${i}BorderColor`]);
+                }
+
+                if (rowsDefinition[`alternationIndex${i}BackgroundColor`]) {
+                    applyToRowCells(row, 'backgroundColor', rowsDefinition[`alternationIndex${i}BackgroundColor`]);
+                }
+            }
+
+            if (rowsDefinition[row]) {
+                for (let prop in rowsDefinition[row]) {
+                    if (rowsDefinition[row].hasOwnProperty(prop)) {
+                        if (prop === 'height') {
+                            that.rowHeight[i] = ` ht="${parseFloat(rowsDefinition[row].height) / 2}"`;
+                            continue;
+                        }
+
+                        applyToRowCells(row, prop, rowsDefinition[row][prop]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Stores cell style in "styleMap" object.
+     */
+    storeCellStyle(cell, prop, value) {
+        const that = this,
+            cellMap = that.styleMap[cell];
+
+        switch (prop) {
+            case 'backgroundColor':
+                cellMap.fills.fgColor = value;
+                break;
+            case 'color':
+                cellMap.fonts.color = value;
+                break;
+            case 'fontFamily':
+                cellMap.fonts.name = value.replace(/"/g, '\'');
+                break;
+            case 'fontSize':
+                cellMap.fonts.sz = parseFloat(value);
+                break;
+            case 'fontStyle':
+                if (value === 'italic') {
+                    cellMap.fonts.i = true;
+                }
+                else {
+                    delete cellMap.fonts.i;
+                }
+
+                break;
+            case 'fontWeight':
+                if (value === 'bold') {
+                    cellMap.fonts.b = true;
+                }
+                else {
+                    delete cellMap.fonts.b;
+                }
+
+                break;
+            case 'numFmt': {
+                cellMap.numFmt = value;
+                break;
+            }
+            case 'textAlign':
+                cellMap.alignment.horizontal = value;
+                break;
+            case 'textDecoration':
+                if (value === 'underline') {
+                    cellMap.fonts.u = true;
+                }
+                else {
+                    delete cellMap.fonts.u;
+                }
+
+                break;
+            case 'verticalAlign':
+                if (value === 'middle') {
+                    value = 'center';
+                }
+
+                cellMap.alignment.vertical = value;
+                break;
+        }
+    }
+
+    /**
+     * Returns an Alpha Red Green Blue color value.
+     */
+    toARGB(color) {
+        color = color.replace(/\s/g, '');
+
+        const rgbResult = /rgb\((\d+),(\d+),(\d+)\)/gi.exec(color);
+
+        if (rgbResult !== null) {
+            const r = parseFloat(rgbResult[1]).toString(16).toUpperCase(),
+                g = parseFloat(rgbResult[2]).toString(16).toUpperCase(),
+                b = parseFloat(rgbResult[3]).toString(16).toUpperCase();
+
+            return 'FF' + ('0').repeat(2 - r.length) + r +
+                ('0').repeat(2 - g.length) + g +
+                ('0').repeat(2 - b.length) + b;
+        }
+
+        const rgbaResult = /rgba\((\d+),(\d+),(\d+)\,(\d*.\d+|\d+)\)/gi.exec(color);
+
+        if (rgbaResult !== null) {
+            const a = Math.round(parseFloat(rgbaResult[4]) * 255).toString(16).toUpperCase(),
+                r = parseFloat(rgbaResult[1]).toString(16).toUpperCase(),
+                g = parseFloat(rgbaResult[2]).toString(16).toUpperCase(),
+                b = parseFloat(rgbaResult[3]).toString(16).toUpperCase();
+
+            return ('0').repeat(2 - a.length) + a +
+                ('0').repeat(2 - r.length) + r +
+                ('0').repeat(2 - g.length) + g +
+                ('0').repeat(2 - b.length) + b;
+        }
+
+        const shortHexResult = /^#(.)(.)(.)$/gi.exec(color);
+
+        if (shortHexResult !== null) {
+            const r = shortHexResult[1].toUpperCase(),
+                g = shortHexResult[2].toUpperCase(),
+                b = shortHexResult[3].toUpperCase();
+
+            return 'FF' + r + r + g + g + b + b;
+        }
+
+        return 'FF' + color.toUpperCase().slice(1);
+    }
+
+    /**
+     * Adds toggleable functionality.
+     */
+    toggleableFunctionality() {
+        const that = this;
+
+        if (!that.actualHierarchy) {
+            return '';
+        }
+
+        return `\n    <style type="text/css">
+        .toggle-element {
+            width: 5px;
+            height: 1px;
+            padding-right: 5px;
+            float: left;
+            text-align: right;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsed {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript">
+        window.onload = function () {
+            var expandChar = '${that.expandChar}',
+                collapseChar = '${that.collapseChar}',
+                toggleElements = document.getElementsByClassName('toggle-element');
+
+            function getParent(child) {
+                var prevSibling = child.previousElementSibling;
+
+                while (prevSibling) {
+                    if (child.getAttribute('level') > prevSibling.getAttribute('level')) {
+                        return prevSibling;
+                    }
+
+                    prevSibling = prevSibling.previousElementSibling;
+                }
+
+            }
+
+            function getFirstCollapsedAncestor(child) {
+                var parent = getParent(child);
+
+                while (parent) {
+                    if (parent.firstElementChild.firstElementChild.innerHTML === expandChar) {
+                        return parent;
+                    }
+
+                    parent = getParent(parent);
+                }
+            }
+
+            for (var i = 0; i < toggleElements.length; i++) {
+                toggleElements[i].addEventListener('click', function (event) {
+                    var expanded = this.innerHTML === collapseChar,
+                        row = this.parentElement.parentElement,
+                        sibling = row.nextElementSibling;
+
+                    if (expanded) {
+                        this.innerHTML = expandChar;
+                    }
+                    else {
+                        this.innerHTML = collapseChar;
+                    }
+
+                    while (sibling && row.getAttribute('level') < sibling.getAttribute('level')) {
+                        if (expanded) {
+                            sibling.style.display = 'none';
+                        }
+                        else {
+                            var firstCollapsedAncestor = getFirstCollapsedAncestor(sibling);
+
+                            if (!firstCollapsedAncestor || firstCollapsedAncestor === row) {
+                                sibling.classList.remove('collapsed');
+                                sibling.style.display = null;
+                            }
+
+                        }
+
+                        sibling = sibling.nextElementSibling;
+                    }
+                });
+            }
+        }
+    </script>`;
+    }
+
+    /**
+     * Generates styles.xml.
+     */
+    generateStyles(style) {
+        const that = this;
+
+        that.cellStyleMapping = {};
+
+        if (Object.keys(style).length === 0 && !that.complexHeader) {
+            // default style
+            return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac x16r2 xr" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac" xmlns:x16r2="http://schemas.microsoft.com/office/spreadsheetml/2015/02/main" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision"><fonts count="1" x14ac:knownFonts="1"><font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><charset val="204"/><scheme val="minor"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>${that.conditionalFormattingXLSX.styles || '<dxfs count="0"/>'}<tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/><extLst><ext uri="{EB79DEF2-80B8-43e5-95BD-54CBDDF9020C}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:slicerStyles defaultSlicerStyle="SlicerStyleLight1"/></ext><ext uri="{9260A510-F301-46a8-8635-F512D64BE5F5}" xmlns:x15="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main"><x15:timelineStyles defaultTimelineStyle="TimeSlicerStyleLight1"/></ext></extLst></styleSheet>`;
+        }
+
+        that.styleMap = {};
+
+        for (let i = 0; i < that.data.length; i++) {
+            for (let j = 0; j < that.columnsArray.length; j++) {
+                that.styleMap[that.columnsArray[j] + (i + 1)] = {
+                    numFmts: {}, fonts: {}, fills: {}, borders: {}, alignment: {}
+                }
+            }
+        }
+
+        if (style && style.columns) {
+            for (let i = 0; i < that.columnsArray.length; i++) {
+                const datafield = that.datafields[i];
+
+                if (!style.columns[datafield] || !style.columns[datafield].format) {
+                    continue;
+                }
+
+                const XLSXFormat = that.getXLSXFormat(style.columns[datafield].format, that.data[that.data.length - 1][datafield]);
+
+                if (XLSXFormat) {
+                    style.columns[datafield].numFmt = XLSXFormat;
+                }
+            }
+        }
+
+        that.processRowStyle(style);
+        that.processColumnStyle(style);
+
+        const cellAliases = {};
+
+        for (let i = 0; i < that.complexHeaderMergedCells.length; i++) {
+            const currentCell = that.complexHeaderMergedCells[i];
+
+            if (parseFloat(currentCell.to[1]) === that.complexHeader.length) {
+                cellAliases[currentCell.to] = currentCell.from;
+                continue;
+            }
+
+            that.styleMap[currentCell.from].alignment.horizontal = 'center';
+            that.styleMap[currentCell.from].alignment.vertical = 'center';
+        }
+
+        const fonts = {
+            xml: '<font><sz val="11" /><color theme="1" /><name val="Calibri" /><family val="2" /><charset val="204" /><scheme val="minor" /></font>',
+            collection: ['default']
+        },
+            fills = {
+                xml: '<fill><patternFill patternType="none" /></fill><fill><patternFill patternType="gray125" /></fill>',
+                collection: ['default', 'gray125']
+            },
+            numFmts = {
+                xml: '',
+                collection: []
+            },
+            cellXfs = {
+                xml: '<xf fontId="0" fillId="0" borderId="1"/>',
+                collection: ['default']
+            };
+
+        for (let i = 0; i < that.data.length; i++) { // iterate rows
+            for (let j = 0; j < that.columnsArray.length; j++) { // iterate columns
+                const currentCell = that.columnsArray[j] + (i + 1),
+                    currentCellStyle = that.styleMap[currentCell];
+                let currentFont = '', currentFill = '', currentAlignment = '',
+                    currentFontCode = [], currentFillCode = [], currentAlignmentCode = [], xf = [];
+
+                for (let prop in currentCellStyle.fonts) {
+                    if (currentCellStyle.fonts.hasOwnProperty(prop)) {
+                        const value = currentCellStyle.fonts[prop];
+
+                        switch (prop) {
+                            case 'color':
+                                currentFontCode[0] = value;
+                                currentFont += `<color rgb="${that.toARGB(value)}" />`;
+                                break;
+                            case 'name':
+                                currentFontCode[1] = value;
+                                currentFont += `<name val="${value}" />`;
+                                break;
+                            case 'sz':
+                                currentFontCode[2] = value;
+                                currentFont += `<sz val="${value}" />`;
+                                break;
+                            case 'i':
+                                currentFontCode[3] = value;
+                                currentFont += '<i />';
+                                break;
+                            case 'b':
+                                currentFontCode[4] = value;
+                                currentFont += '<b />';
+                                break;
+                            case 'u':
+                                currentFontCode[5] = value;
+                                currentFont += '<u />';
+                                break;
+                        }
+                    }
+                }
+
+                for (let prop in currentCellStyle.fills) {
+                    if (currentCellStyle.fills.hasOwnProperty(prop)) {
+                        const value = currentCellStyle.fills[prop];
+
+                        switch (prop) {
+                            case 'fgColor':
+                                currentFillCode[0] = value;
+                                currentFill += `<fgColor rgb="${that.toARGB(value)}" />`;
+                                break;
+                        }
+                    }
+                }
+
+                for (let prop in currentCellStyle.alignment) {
+                    if (currentCellStyle.alignment.hasOwnProperty(prop)) {
+                        const value = currentCellStyle.alignment[prop];
+
+                        switch (prop) {
+                            case 'horizontal':
+                                currentAlignmentCode[0] = value;
+                                currentAlignment += `horizontal="${value}" `;
+                                break;
+                            case 'vertical':
+                                currentAlignmentCode[1] = value;
+                                currentAlignment += `vertical="${value}" `;
+                                break;
+                        }
+                    }
+                }
+
+                currentFontCode = currentFontCode.toString();
+                currentFillCode = currentFillCode.toString();
+
+                if (currentFont !== '') {
+                    let fontIndex = fonts.collection.indexOf(currentFontCode);
+
+                    if (fontIndex === -1) {
+                        fontIndex = fonts.collection.length;
+
+                        fonts.xml += '<font>' + currentFont + '</font>';
+                        fonts.collection.push(currentFontCode);
+                    }
+
+                    xf[0] = fontIndex;
+                }
+
+                if (currentFill !== '') {
+                    let fillIndex = fills.collection.indexOf(currentFillCode);
+
+                    if (fillIndex === -1) {
+                        fillIndex = fills.collection.length;
+
+                        fills.xml += '<fill><patternFill patternType="solid">' + currentFill + '</patternFill></fill>';
+                        fills.collection.push(currentFillCode);
+                    }
+
+                    xf[1] = fillIndex;
+                }
+
+                if (currentAlignmentCode.length > 0) {
+                    xf[2] = currentAlignment;
+                }
+
+                if (currentCellStyle.numFmt !== undefined) {
+                    xf[3] = that.getNumFmtIndex(currentCellStyle.numFmt, numFmts);
+                }
+
+                const xfCode = xf.toString();
+
+                if (xfCode !== '') {
+                    let xfIndex = cellXfs.collection.indexOf(xfCode);
+
+                    if (xfIndex === -1) {
+                        let newXfXML = '<xf ';
+
+                        xfIndex = cellXfs.collection.length;
+
+                        if (xf[0] !== undefined) {
+                            newXfXML += `fontId="${xf[0]}" `;
+                        }
+
+                        if (xf[1] !== undefined) {
+                            newXfXML += `fillId="${xf[1]}" `;
+                        }
+
+                        if (xf[3] !== undefined) {
+                            newXfXML += `numFmtId="${xf[3]}" `;
+                        }
+
+                        if (xf[2] !== undefined) {
+                            newXfXML += `applyAlignment="1" borderId="1"><alignment ${currentAlignment}/></xf>`;
+                        }
+                        else {
+                            newXfXML += ' borderId="1"/>';
+                        }
+
+                        cellXfs.xml += newXfXML;
+                        cellXfs.collection.push(xfCode);
+                    }
+
+                    that.cellStyleMapping[cellAliases[currentCell] || currentCell] = xfIndex;
+                }
+            }
+        }
+
+        if (numFmts.collection.length) {
+            numFmts.xml = `<numFmts count="${numFmts.collection.length}">${numFmts.xml}</numFmts>`;
+        }
+
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac x16r2 xr" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac" xmlns:x16r2="http://schemas.microsoft.com/office/spreadsheetml/2015/02/main" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision">${numFmts.xml}<fonts count="${fonts.collection.length}" x14ac:knownFonts="1">${fonts.xml}</fonts><fills count="${fills.collection.length}">${fills.xml}</fills><borders count="2"><border><left/><right/><top/><bottom/></border><border><left style="hair"/><right style="hair"/><top style="hair"/><bottom style="hair"/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${cellXfs.collection.length}">${cellXfs.xml}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>${that.conditionalFormattingXLSX.styles}<dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/><extLst><ext uri="{EB79DEF2-80B8-43e5-95BD-54CBDDF9020C}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:slicerStyles defaultSlicerStyle="SlicerStyleLight1"/></ext><ext uri="{9260A510-F301-46a8-8635-F512D64BE5F5}" xmlns:x15="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main"><x15:timelineStyles defaultTimelineStyle="TimeSlicerStyleLight1"/></ext></extLst></styleSheet>`;
+    }
+  }
+  
+	if ($.jqx && $.jqx.dataAdapter) {
+		$.jqx.dataAdapter.DataExporter = DataExporter;
+	}
+})(jqxBaseFramework);
