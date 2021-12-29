@@ -1,0 +1,8 @@
+/*
+jQWidgets v11.0.1 (2020-Dec)
+Copyright (c) 2011-2020 jQWidgets.
+License: https://jqwidgets.com/license/
+*/
+/* eslint-disable */
+
+(function(a){a.extend(a.jqx._jqxGrid.prototype,{savestate:function(b){var c=this.getstate();if(b!==undefined&&!a.isEmptyObject(b)){if(b.indexOf("sort")==-1){delete c.sortcolumn;delete c.sortdirection}if(b.indexOf("pager")==-1){delete c.pagenum;delete c.pagesizeoptions;delete c.pagesize}if(b.indexOf("selection")==-1){delete c.selectedcells;delete c.selectedrowindexes;delete c.selectedrowindex}if(b.indexOf("grouping")==-1){delete c.groups}if(b.indexOf("filter")==-1){delete c.filters}a.each(this.columns.records,function(e){var d=c.columns[this.datafield];if(b.indexOf("hidden_columns")==-1){delete d.hidden}if(b.indexOf("reorder")==-1){delete d.index}if(b.indexOf("columns_width")==-1){delete d.width}if(b.indexOf("columns_text")==-1){delete d.text}if(b.indexOf("alignment")==-1){delete d.align;delete d.cellsalign}})}if(window.localStorage){window.localStorage["jqxGrid"+this.element.id]=this._stringify(c)}this._savedstate=c;return c},loadstate:function(d,j){var g="";if(d!=undefined&&d.width!=undefined){g=d}else{if(window.localStorage){var c=window.localStorage["jqxGrid"+this.element.id];if(c){var g=a.parseJSON(window.localStorage["jqxGrid"+this.element.id])}}else{if(this._savedstate){var g=this._savedstate}}}if(g!=null&&g!==""){if(this.virtualmode||(this.source._source.url&&this.source._source.url!="")){this.source.beginUpdate()}var f=g;if(f.width!==undefined){this.width=f.width}if(
