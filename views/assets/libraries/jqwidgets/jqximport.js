@@ -352,4 +352,133 @@
     }
 
     refreshHierarchy() {
-        const that = th
+        const that = this;
+
+        that._buildHierarchy();
+    }
+
+    find() {
+        const that = this;
+
+        return that.boundSource.find.apply( that.boundSource, arguments );
+    }
+
+    onVirtualDataSourceRequested( requestCallback, details ) {
+        const that = this;
+
+        let first = details ? details.first : Infinity;
+        let last = details ? details.last : Infinity;
+        let row = details ? details.row : null;
+
+        if ( undefined === first ) {
+            first = Infinity;
+        }
+
+        if ( undefined === last ) {
+            last = Infinity;
+        }
+
+        that.virtualFirstIndex = first;
+        that.virtualLastIndex = last;
+
+        if ( that.virtualDataSource ) {
+            const getDataSource = function ( ExcelAdapterSettings ) {
+                if ( ExcelAdapterSettings.virtualDataSourceLength !== undefined ) {
+                    that.virtualDataSourceLength = ExcelAdapterSettings.virtualDataSourceLength;
+                }
+
+                new JQX.ExcelAdapter(
+                    {
+                        dataSource: ExcelAdapterSettings.dataSource,
+                        dataFields: ExcelAdapterSettings.dataFields || that.dataFields,
+                        data: details,
+                        onBindingComplete( event ) {
+
+                            if ( that.virtualDataSourceOnExpand && row ) {
+                                if ( event.data && event.data.length > 0 ) {
+                                    that.add( event.data, row.$.id );
+                                }
+                                else {
+                                    row.leaf = true;
+                                }
+
+                                if ( that.onFilter ) {
+                                    that.onFilter()
+                                }
+
+                                requestCallback();
+
+                                return;
+                            }
+
+                            if ( first === Infinity ) {
+                                that.add( event.data );
+                            }
+                            else {
+                                let items = [];
+                                let indexes = [];
+
+                                for ( let i = 0; i < event.data.length; i++ ) {
+                                    const item = event.data[ i ];
+
+                                    if ( first + i <= last ) {
+                                        items.push( item );
+                                        indexes.push( first + i );
+                                    }
+                                }
+
+                                that.update( indexes, items );
+                            }
+
+
+                            if ( that.onFilter ) {
+                                that.onFilter()
+                            }
+
+                            requestCallback();
+                        }
+                    } );
+            }
+
+            let hasCache = false;
+
+            const isEmpty = ( obj ) => Object.entries( obj ).length === 0 && ( obj.constructor === Object || obj.constructor === Array );
+            const canCache = isEmpty( details.sorting ) && isEmpty( details.filtering ) && isEmpty( details.grouping ) && !details.row && ( details.action !== 'filter' && details.action !== 'sort' && details.action !== 'group' );
+
+            if ( that.virtualDataSourceCache && first !== Infinity && canCache ) {
+                let cachedCount = 0;
+
+                for ( let i = first; i < last; i++ ) {
+                    if ( !that[ i ].$.isEmpty ) {
+                        cachedCount++;
+                    }
+                }
+
+                if ( cachedCount === last - first ) {
+                    hasCache = true;
+                }
+            }
+
+            if ( hasCache ) {
+                requestCallback();
+            }
+            else {
+                if ( details.action === 'expand' ) {
+                    that.virtualDataSourceOnExpand( getDataSource, {
+                        first: first,
+                        last: last,
+                        row: details.row,
+                        sorting: details.sorting,
+                        filtering: details.filtering,
+                        grouping: details.grouping,
+                        action: details.action
+                    } );
+                }
+                else {
+                    that.virtualDataSource( getDataSource, {
+                        first: first,
+                        last: last,
+                        sorting: details.sorting,
+                        filtering: details.filtering,
+                        filterOperator: details.filterOperator || 'and',
+           
