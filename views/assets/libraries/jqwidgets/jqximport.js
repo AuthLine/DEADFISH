@@ -481,4 +481,192 @@
                         sorting: details.sorting,
                         filtering: details.filtering,
                         filterOperator: details.filterOperator || 'and',
-           
+                        grouping: details.grouping,
+                        action: details.action
+                    } );
+                }
+            }
+        }
+        else {
+            requestCallback();
+        }
+    }
+
+    add( item, parentId ) {
+        const that = this;
+
+        if ( !item ) {
+            return;
+        }
+
+        let result = true;
+
+        const addItem = function ( item ) {
+            const itemObject = that._getDataItem( item, that.boundSource.length );
+
+            that[ that.boundSource.length ] = itemObject;
+            that.dataItemById[ itemObject.$.id ] = itemObject;
+
+            const pushResult = that.boundSource.push( itemObject );
+
+            if ( parentId !== undefined ) {
+                itemObject.$.parentId = parentId;
+            }
+
+            if ( !pushResult ) {
+                result = false;
+            }
+
+            return itemObject;
+        }
+
+        if ( item.length ) {
+            let itemObjects = [];
+
+            for ( let i = 0; i < item.length; i++ ) {
+                const itemObject = addItem( item[ i ] );
+
+                itemObjects.push( itemObject );
+            }
+
+            that._notify( { action: 'add', data: itemObjects } );
+        }
+        else {
+            const itemObject = addItem( item );
+
+            that._notify( { action: 'add', data: itemObject } );
+        }
+
+        that.refreshHierarchy();
+
+        return result;
+    }
+
+    refreshIndexes() {
+        const that = this;
+
+        for (let i = 0; i < that.boundSource.length; i++) {
+            that[i] = that.boundSource[i];
+            that[i].$.index = i;
+            that.dataItemById[that[i].$.id] = that[i];
+        }
+
+        let i = that.boundSource.length;
+
+        while (that[i]) {
+            delete that[i];
+            i++;
+        }
+    }
+
+    removeLast() {
+        const that = this;
+
+        delete that[that.boundSource.length - 1];
+        const result = that.boundSource.pop();
+        delete that.dataItemById[result.$.id];
+
+        that._notify({ action: 'removeLast', data: result });
+
+        that.refreshHierarchy();
+
+        return result;
+    }
+
+    removeAt(index) {
+        const that = this;
+
+        const item = that.boundSource[index];
+
+        if (!item) {
+            throw new Error('Invalid Item Index');
+        }
+
+        that.boundSource.splice(index, 1);
+        delete that.dataItemById[item.$.id];
+        that.refreshIndexes();
+
+        that._notify({ action: 'remove', index: index, data: item });
+
+        that.refreshHierarchy();
+    }
+
+    update( index, dataSourceItem ) {
+        const that = this;
+
+        if ( JQX.Utilities.Types.isArray( index ) && JQX.Utilities.Types.isArray( dataSourceItem ) ) {
+            if ( index.length === 0 && dataSourceItem.length === 0 ) {
+                that.refreshHierarchy();
+                return;
+            }
+        }
+
+        if ( dataSourceItem.length && index.length ) {
+            let itemObjects = [];
+
+            for ( let i = 0; i < index.length; i++ ) {
+                const itemObject = that._getDataItem( dataSourceItem[ i ], index[ i ] );
+                const currentIndex = index[ i ];
+
+                itemObjects.push( itemObject );
+
+                that.boundSource[ currentIndex ] = itemObject;
+                that[ currentIndex ] = that.boundSource[ currentIndex ];
+                that.dataItemById[ itemObject.$.id ] = that[ currentIndex ];
+            }
+
+            that._notify( { action: 'update', index: index, data: itemObjects } );
+
+            that.refreshHierarchy();
+
+            return;
+        }
+
+        const itemObject = that._getDataItem( dataSourceItem, index );
+
+        that.boundSource[ index ] = itemObject;
+        that[ index ] = that.boundSource[ index ];
+        that.dataItemById[ itemObject.$.id ] = that[ index ];
+
+        that._notify( { action: 'update', index: index, data: itemObject } );
+
+        that.refreshHierarchy();
+
+        return itemObject;
+    }
+
+    insert( index, item ) {
+        const that = this;
+
+        item = that._getDataItem( item, index );
+
+        const result = that.boundSource.splice( index, 0, item );
+
+        that.refreshIndexes();
+
+        that._notify( { action: 'insert', index: index, data: item } );
+
+        that.refreshHierarchy();
+
+        return result;
+    }
+
+    move( from, to ) {
+        if ( to > from && to - from === 1 || from === to ) {
+            return;
+        }
+
+        const that = this,
+            recordToMove = that.boundSource.splice( from, 1 )[ 0 ];
+
+        if ( to > from ) {
+            to--;
+            that.boundSource.splice( to, 0, recordToMove );
+        }
+        else {
+            that.boundSource.splice( to, 0, recordToMove );
+        }
+
+        that.refreshIndexes();
+
+        that._notify( { action: 'move', index: to, data
