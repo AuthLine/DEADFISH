@@ -168,4 +168,188 @@
                 if ( typeof dataField === 'string' ) {
                     const dataFieldParts = dataField.split( ':' );
                     const name = dataFieldParts[ 0 ].trim();
-                    const dataType = dataFieldParts.length > 1 ? dataFieldParts[ 1 ].tr
+                    const dataType = dataFieldParts.length > 1 ? dataFieldParts[ 1 ].trim() : 'string';
+
+                    dataFieldObjects.push( { name: name, dataType: dataType } );
+                }
+                else {
+                    dataFieldObjects.push( dataField );
+                }
+            }
+        }
+
+        return dataFieldObjects;
+    }
+
+    get dataSource() {
+        const that = this;
+
+        if ( !that._dataSource ) {
+            that._dataSource = [];
+        }
+
+        return that._dataSource;
+    }
+
+    set dataSource( value ) {
+        const that = this;
+
+        that._dataSource = value;
+
+        if ( that.isInitialized ) {
+            that.boundSource = false === that.observable ? [] : new JQX.ObservableArray();
+            that.dataItemById = [];
+            that.bindingCompleted = false;
+            that.dataBind();
+        }
+    }
+
+    get canNotify() {
+        const that = this;
+
+        if ( that._canNotify === undefined ) {
+            that._canNotify = true;
+        }
+
+        return that._canNotify;
+    }
+
+    set canNotify( value ) {
+        const that = this;
+
+        that._canNotify = value;
+    }
+
+    _notify( changeArgs ) {
+        const that = this;
+
+        if ( !that.canNotify ) {
+            return;
+        }
+
+        if ( that.notifyFn ) {
+            that.notifyFn( changeArgs );
+        }
+    }
+
+    notify( notifyFn ) {
+        const that = this;
+
+        if ( notifyFn ) {
+            that.notifyFn = notifyFn;
+        }
+    }
+
+    toArray() {
+        const that = this;
+
+        return that.boundSource.toArray();
+    }
+
+    dataBind() {
+        const that = this;
+
+        that.clear();
+
+        const completed = () => {
+       
+
+            that._onBindingComplete();
+        }
+
+        if ( typeof that.dataSource === 'string' && ( that.dataSource.indexOf( '.json' ) >= 0 ) ) {
+            that.url = that.dataSource;
+            that.dataSourceType = 'json';
+
+            new Ajax( that, ( data/*, status*/ ) => {
+                that.dataSource = data;
+
+                that._bindToJSON();
+            } );
+        }
+        else if ( typeof that.dataSource === 'string' && ( that.dataSource.indexOf( '.xlsx' ) >= 0 ) ) {
+            that.url = that.dataSource;
+            that.dataSourceType = 'xlsx';
+
+            new Ajax( that, ( data/*, status*/ ) => {
+                if ( !data[ 0 ] ) {
+                    data = [];
+                    that._bindToArray();
+                    completed();
+                    return;
+                }
+
+                const keys = Object.keys( data[ 0 ] );
+                const dataFieldMap = {};
+                const dataRows = [];
+
+                if ( that.exportHeader !== false ) {
+                    let index = 0;
+
+                    for ( let key in keys ) {
+                        const name = keys[ key ];
+
+                        dataFieldMap[ name ] = that.dataFields[ index++ ].name;
+                    }
+
+                    for ( let i = 1; i < data.length; i++ ) {
+                        const row = data[ i ];
+                        const dataRow = {};
+
+                        for ( let key in keys ) {
+                            const name = keys[ key ];
+
+                            dataRow[ dataFieldMap[ name ] ] = row[ name ];
+                        }
+
+                        dataRows.push( dataRow );
+                    }
+
+                    that.dataSource = dataRows;
+                }
+
+                that._bindToArray();
+                completed();
+            } );
+        }
+        else if ( typeof that.dataSource === 'string' && ( that.dataSource.indexOf( '.csv' ) >= 0 ) ) {
+            that.dataSourceType = 'csv';
+
+            new Ajax( that, (/*data, status*/ ) => {
+                that._bindToArray();
+            } );
+        }
+        else if ( typeof that.dataSource === 'string' && ( that.dataSource.indexOf( '.tsv' ) >= 0 ) ) {
+            that.dataSourceType = 'tsv';
+
+            new Ajax( that, (/*data, status*/ ) => {
+            } );
+        }
+        else if ( that.dataSourceType === 'array' ) {
+            that._bindToArray();
+            completed();
+        }
+        else if ( that.dataSourceType === 'json' ) {
+            that._bindToJSON();
+            completed();
+        }
+    }
+
+    _onBindingComplete() {
+        const that = this;
+
+        that._buildHierarchy();
+
+        if ( that.onBindingComplete ) {
+            that.onBindingComplete( { data: that.boundSource } );
+        }
+
+        if ( that._notify ) {
+            that._notify( { action: 'bindingComplete', data: that.boundSource } );
+        }
+
+        that.bindingCompleted = true;
+    }
+
+    refreshHierarchy() {
+        const that = th
