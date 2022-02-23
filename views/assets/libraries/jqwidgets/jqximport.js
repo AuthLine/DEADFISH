@@ -669,4 +669,165 @@
 
         that.refreshIndexes();
 
-        that._notify( { action: 'move', index: to, data
+        that._notify( { action: 'move', index: to, data: that.boundSource[ to ] } );
+
+        that.refreshHierarchy();
+    }
+
+    indexOf( item ) {
+        const that = this;
+        const index = that.boundSource.indexOf( item );
+
+        return index;
+    }
+
+    get length() {
+        const that = this;
+
+        if ( that.virtualDataSourceLength !== undefined ) {
+            return that.virtualDataSourceLength;
+        }
+
+        if ( that.dataSourceLength ) {
+            return that.dataSourceLength;
+        }
+
+        if ( typeof ( that.dataSource ) === 'number' ) {
+            return that.dataSource;
+        }
+
+        if ( that.bindingCompleted ) {
+            return that.boundSource.length;
+        }
+
+        if ( that.dataSource && typeof that.dataSource !== 'string' && that.dataSource.length ) {
+            return that.dataSource.length;
+        }
+
+        return that.boundSource.length;
+    }
+
+    clear() {
+        const that = this;
+
+        if ( !that.isInitialized ) {
+            that._cachedValues = [];
+            that.dataItemById = [];
+            return;
+        }
+
+        for ( let i = 0; i < that.boundSource.length; i++ ) {
+            delete that[ i ];
+        }
+
+        that._cachedValues = [];
+        that.boundSource = that.observable ? new JQX.ObservableArray() : [];
+        that.dataItemById = [];
+        that.refreshHierarchy();
+    }
+
+    _getId( id, item, index ) {
+        if ( id !== null && id.name !== undefined ) {
+            if ( id.name && item.getAttribute ) {
+                let result = item.getAttribute( id.name );
+                if ( result !== null && result.toString().length > 0 ) {
+                    return result;
+                }
+                else if ( id.map ) {
+                    try {
+                        let result = item.getAttribute( id.map );
+                        if ( result !== null && result.toString().length > 0 ) {
+                            return result;
+                        }
+                    }
+                    catch ( error ) {
+                        return index;
+                    }
+                }
+                return;
+            }
+        }
+
+        if ( id ) {
+            if ( id.toString().length > 0 && item.getAttribute ) {
+                let result = item.getAttribute( id );
+                if ( result !== null && result.toString().length > 0 ) {
+                    return result.trim().split( ' ' ).join( '' ).replace( /([ #;?%&,.+*~\':'!^$[\]()=>|\/@])/g, '' );
+                }
+                else {
+                    let splitMap = id.split( this.mapChar );
+                    if ( splitMap.length > 1 ) {
+                        let d = item;
+                        for ( let p = 0; p < splitMap.length; p++ ) {
+                            if ( d !== undefined ) {
+                                d = d[ splitMap[ p ] ];
+                            }
+                        }
+                        if ( d !== undefined ) {
+                            return d;
+                        }
+                    }
+                    else {
+                        if ( item[ id ] !== undefined ) {
+                            return item[ id ];
+                        }
+                    }
+                }
+            }
+        }
+
+        return index;
+    }
+
+    _buildHierarchy() {
+        const that = this;
+
+        if ( !that.reservedNames ) {
+            that.reservedNames = {
+                leaf: 'leaf',
+                parent: 'parent',
+                expanded: 'expanded',
+                checked: 'checked',
+                selected: 'selected',
+                level: 'level',
+                icon: 'icon',
+                data: 'data'
+            }
+        }
+        else {
+            const names = that.reservedNames;
+
+            if ( !names.leaf ) {
+                names.leaf = 'leaf';
+            }
+            if ( !names.parent ) {
+                names.parent = 'parent';
+            }
+            if ( !names.expanded ) {
+                names.expanded = 'expanded';
+            }
+            if ( !names.checked ) {
+                names.checked = 'checked';
+            }
+            if ( !names.selected ) {
+                names.selected = 'selected';
+            }
+            if ( !names.level ) {
+                names.level = 'level';
+            }
+            if ( !names.data ) {
+                names.data = 'data';
+            }
+
+        }
+
+        const names = that.reservedNames;
+
+        if ( that.childrenDataField ) {
+            const hierarchy = [];
+
+            for ( let i = 0; i < that.boundSource.length; i++ ) {
+                const item = Object.assign( {}, that.boundSource[ i ] );
+
+                if ( !item ) {
+             
