@@ -830,4 +830,132 @@
                 const item = Object.assign( {}, that.boundSource[ i ] );
 
                 if ( !item ) {
-             
+                    continue;
+                }
+
+                hierarchy.push( item );
+
+                const addItems = function ( item ) {
+                    const splitMap = that.childrenDataField.split( that.mapChar );
+                    let children = null;
+
+                    if ( splitMap.length > 1 ) {
+                        let data = item;
+
+                        for ( let p = 0; p < splitMap.length; p++ ) {
+                            if ( data !== undefined ) {
+                                data = data[ splitMap[ p ] ];
+                            }
+                        }
+
+                        children = data;
+                    }
+                    else {
+                        children = item[ 'children' ];
+                    }
+
+                    item[ 'children' ] = children;
+
+                    if ( item[ 'children' ] === null || item[ 'children' ] === undefined || ( item[ 'children' ] && item[ 'children' ].length === 0 ) ) {
+                        item[ names.leaf ] = true;
+                    }
+                }
+
+                addItems( item );
+                item[ names.level ] = 0;
+
+                if ( !item.$ ) {
+                    item.$ = {};
+                }
+
+                item[ names.parent ] = null;
+                item[ names.data ] = item;
+
+                if ( item[ names.expanded ] === undefined ) {
+                    item[ names.expanded ] = false;
+                }
+
+                const drillThrough = function ( parent, children ) {
+                    if ( !children ) {
+                        parent[ 'children' ] = new Array();
+                        return;
+                    }
+
+                    for ( let i = 0; i < children.length; i++ ) {
+                        let item = that._getDataItem( children[ i ], i );
+
+                        if ( !item ) {
+                            continue;
+                        }
+
+                        addItems( item );
+                        item[ names.level ] = parent[ names.level ] + 1;
+                        item[ names.parent ] = parent;
+                        item[ names.data ] = item;
+
+                        if ( parent ) {
+                            parent[ 'children' ][ i ] = item;
+                        }
+
+
+                        if ( item[ names.expanded ] === undefined ) {
+                            item[ names.expanded ] = false;
+                        }
+
+                        drillThrough( item, item[ 'children' ] );
+                    }
+                }
+
+                drillThrough( item, item[ 'children' ] );
+            }
+
+
+            that.boundHierarchy = hierarchy;
+
+            if ( !that._boundSourceUpdate ) {
+                for ( let i = 0; i < that.boundHierarchy.length; i++ ) {
+                    const item = that.boundHierarchy[ i ];
+
+                    if ( item.children ) {
+                        const drillThrough = function ( item ) {
+                            if ( !that.dataItemById[ item.$.id ] ) {
+                                that.boundSource.canNotify = false;
+                                that.dataItemById[ item.$.id ] = item;
+                                that[ that.boundSource.length ] = item;
+                                that.boundSource.push( item );
+                                that.boundSource.canNotify = true;
+                            }
+
+                            if ( item.children ) {
+                                for ( let i = 0; i < item.children.length; i++ ) {
+                                    const child = item.children[ i ];
+
+                                    if ( child.children ) {
+                                        drillThrough( child );
+                                    }
+                                }
+                            }
+                        }
+
+                        drillThrough( item );
+                    }
+                }
+
+                that._boundSourceUpdate = true;
+            }
+        }
+
+        if ( that.xmlRoot && that.dataSourceType === 'xml' ) {
+            that.boundHierarchy = this._getHierarchy( 'uid', '_parentuid', 'children', null, that.boundSource );
+        }
+
+        if ( that.keyDataField && that.parentDataField ) {
+            that.boundHierarchy = this._getHierarchy( that.keyDataField, that.parentDataField, 'children', null, that.boundSource );
+        }
+
+        if ( that.groupBy && that.groupBy.length > 0 ) {
+            that.boundHierarchy = this._getGroupHierarchy( that.groupBy, 'children', 'label', null, 'data', null, 'parent', that.boundSource );
+        }
+
+        if ( that.virtualDataSourceOnExpand ) {
+            that.boundHierarchy = this._
