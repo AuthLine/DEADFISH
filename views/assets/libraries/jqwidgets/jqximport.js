@@ -1098,4 +1098,145 @@
                         uid = 'Item' + uid;
                     }
                     if ( parentItem.$.id === undefined ) {
-                        par
+                        parentItem.$.id = uid;
+                    }
+
+                    groupboundSource[ groupboundSourceIndex++ ] = parentItem;
+                }
+                else {
+                    const subItem = { $: {} };
+
+                    subItem[ names.level ] = parentItem[ names.level ] + 1;
+                    subItem[ parentName ] = parentItem;
+                    subItem[ groupName ] = itemKey;
+                    subItem[ collectionName ] = new Array();
+                    subItem[ itemName ] = item;
+                    subItem[ 'groupDataField' ] = groupDataField;
+                    subItem[ names.leaf ] = false;
+
+                    if ( !subItem[ groupDataField ] ) {
+                        subItem[ groupDataField ] = subItem.data[ groupDataField ];
+                    }
+
+                    if ( item[ names.expanded ] !== undefined ) {
+                        subItem[ names.expanded ] = item[ names.expanded ];
+                    }
+                    else {
+                        subItem[ names.expanded ] = false;
+                    }
+
+                    if ( valueName ) {
+                        subItem[ valueName ] = item[ valueName ];
+                    }
+
+                    if ( subItem.$.id === undefined ) {
+                        subItem.$.id = parentItem.$.id + '_' + parentItem[ collectionName ].length;
+                    }
+
+                    parentItem[ collectionName ][ parentItem[ collectionName ].length ] = subItem;
+                    parentItem = subItem;
+                }
+
+                hashItemGroups[ lookupKey ] = parentItem;
+            }
+
+            if ( item ) {
+                item[ names.leaf ] = true;
+            }
+
+            if ( parentItem !== null ) {
+                if ( this.id === null ) {
+                    if ( undefined === item.$.id ) {
+                        item.$.id = parentItem.$.id + '_' + parentItem[ collectionName ].length;
+                    }
+                }
+                else {
+                    if ( undefined === item.$.id ) {
+                        if ( item.$.id.toString().indexOf( parentItem.$.id ) === -1 ) {
+                            item.$.id = parentItem.$.id + '_' + item.$.id;
+                        }
+                    }
+                }
+
+                item[ parentName ] = parentItem;
+                item[ names.level ] = parentItem[ names.level ] + 1;
+                parentItem[ collectionName ][ parentItem[ collectionName ].length ] = item;
+            }
+            else {
+                if ( undefined === item.$.id ) {
+                    item.$.id = guid();
+                }
+            }
+        }
+
+        return groupboundSource;
+    }
+
+    _getHierarchy( fieldName, parentFieldName, collectionName, mappingFields, boundSource ) {
+        const that = this;
+
+        const databoundHierarchy = new Array();
+        let flatData = this.boundSource;
+
+        if ( boundSource ) {
+            flatData = boundSource;
+        }
+
+        if ( this.boundSource.length === 0 )
+            return null;
+
+        const childrenName = collectionName !== null ? collectionName : 'children';
+        let items = new Array();
+        let data = flatData;
+        let dataLength = data.length;
+        let names = that.reservedNames;
+
+        const getItem = function ( item ) {
+            let itemObj = item;
+            if ( mappingFields ) {
+                for ( let mappingField in mappingFields ) {
+                    const mappingObject = mappingFields[ mappingField ];
+
+                    if ( mappingObject.name && mappingObject.map ) {
+                        itemObj[ mappingObject.map ] = itemObj[ mappingObject.name ];
+                    }
+                }
+            }
+
+            return itemObj;
+        }
+
+        // build hierarchical source.
+        for ( let i = 0; i < dataLength; i++ ) {
+            let item = data[ i ];
+            let parentId = item[ parentFieldName ];
+            let id = item[ fieldName ];
+
+            if ( parentFieldName === 'parentId' ) {
+                parentId = item.$.parentId;
+            }
+
+            if ( fieldName === 'id' ) {
+                id = item.$.id;
+            }
+
+            item[ childrenName ] = new Array();
+
+            items[ id ] = { parentId: parentId, item: item };
+        }
+
+        for ( let i = 0; i < dataLength; i++ ) {
+            const item = data[ i ];
+            let parentId = item[ parentFieldName ];
+            let id = item[ fieldName ];
+
+            if ( parentFieldName === 'parentId' ) {
+                parentId = item.$.parentId;
+            }
+
+            if ( fieldName === 'id' ) {
+                id = item.$.id;
+            }
+
+            if ( items[ parentId ] !== undefined ) {
+                let item = { parentId: parentId
