@@ -1239,4 +1239,150 @@
             }
 
             if ( items[ parentId ] !== undefined ) {
-                let item = { parentId: parentId
+                let item = { parentId: parentId, item: items[ id ].item };
+                let parentItem = items[ parentId ].item;
+                if ( !parentItem[ childrenName ] ) {
+                    parentItem[ childrenName ] = new Array();
+                }
+                let length = parentItem[ childrenName ].length;
+                item = item.item;
+
+                if ( !names ) {
+                    if ( item.parent === undefined ) {
+                        item.parent = parentItem;
+                    }
+                }
+                else {
+                    if ( item[ names.parent ] === undefined ) {
+                        item[ names.parent ] = parentItem;
+                    }
+                }
+
+                const itemObj = getItem( item );
+
+                parentItem[ childrenName ][ length ] = itemObj;
+                items[ parentId ].item = parentItem;
+                items[ id ].item = item;
+
+            }
+            else {
+                let item = items[ id ].item;
+                if ( !names ) {
+                    if ( item.parent === undefined ) {
+                        item.parent = null;
+                    }
+                }
+                else {
+                    if ( item[ names.parent ] === undefined ) {
+                        item[ names.parent ] = null;
+                    }
+                }
+
+                const itemObj = getItem( item );
+
+                if ( !names ) {
+                    itemObj.level = 0;
+                }
+                else {
+                    itemObj[ names.level ] = 0;
+                }
+
+                databoundHierarchy[ databoundHierarchy.length ] = itemObj;
+            }
+        }
+        if ( databoundHierarchy.length !== 0 ) {
+            let updateLevels = function ( level, children ) {
+                for ( let i = 0; i < children.length; i++ ) {
+                    const child = children[ i ];
+
+                    if ( !names ) {
+                        child.level = level;
+                    }
+                    else {
+                        child[ names.level ] = level;
+                    }
+
+                    const childChildren = child[ childrenName ];
+
+                    if ( childChildren ) {
+                        if ( childChildren.length > 0 ) {
+                            updateLevels( level + 1, childChildren );
+                        }
+                        else {
+                            if ( that.virtualDataSourceOnExpand ) {
+                                if ( child.leaf === undefined ) {
+                                    child.leaf = false;
+                                }
+                            }
+                            else {
+                                if ( !names ) {
+                                    child.leaf = true;
+                                }
+                                else {
+                                    child[ names.leaf ] = true;
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        if ( that.virtualDataSourceOnExpand ) {
+                            if ( child.leaf === undefined ) {
+                                child.leaf = false;
+                            }
+                        }
+                        else {
+                            if ( !names ) {
+                                child.leaf = true;
+                            }
+                            else {
+                                child[ names.leaf ] = true;
+                            }
+                        }
+                    }
+                }
+            };
+            updateLevels( 0, databoundHierarchy );
+        }
+        return databoundHierarchy;
+    }
+
+    summarize( summaryItems, boundSource ) {
+        const that = this;
+
+        if ( !Array.isArray( summaryItems ) ) {
+            summaryItems = [ summaryItems ];
+        }
+
+        let tempSummaryItems = [];
+
+        for ( let i = 0; i < summaryItems.length; i++ ) {
+            const summaryItem = summaryItems[ i ];
+
+            for ( let name in summaryItem ) {
+                const functions = summaryItem[ name ];
+
+                tempSummaryItems.push( { dataField: name, functions: functions } )
+            }
+        }
+
+        summaryItems = tempSummaryItems;
+
+        let data = {};
+        let summaryByDataField = new Array();
+
+        if ( !boundSource ) {
+            boundSource = that.boundSource;
+        }
+
+        let length = boundSource.length;
+
+        if ( length === 0 ) {
+            return;
+        }
+
+        if ( length === undefined ) {
+            return;
+        }
+
+        for ( let i = 0; i < length; i++ ) {
+            let dataItem = boundSourc
