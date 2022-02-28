@@ -958,4 +958,144 @@
         }
 
         if ( that.virtualDataSourceOnExpand ) {
-            that.boundHierarchy = this._
+            that.boundHierarchy = this._getHierarchy( 'id', 'parentId', 'children', null, that.boundSource );
+        }
+    }
+
+
+    _getGroupHierarchy( groups, collectionName, groupName, mappingFields, itemName, valueName, parentName, data, startIndex ) {
+        let that = this;
+
+        if ( !startIndex ) {
+            startIndex = 0;
+        }
+
+        let names = that.reservedNames;
+
+        const guid = function () {
+            function s4() {
+                return Math.floor( ( 1 + Math.random() ) * 0x10000 )
+                    .toString( 16 )
+                    .substring( 1 );
+            }
+
+            return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+        }
+
+        let groupHashCodes = new Array();
+        for ( let iGroupColumn = 0; iGroupColumn < groups.length; iGroupColumn++ ) {
+            groupHashCodes[ iGroupColumn ] = guid();
+        }
+
+        if ( !collectionName ) {
+            collectionName = 'children';
+        }
+
+        if ( !groupName ) {
+            groupName = 'group';
+        }
+
+        if ( !itemName ) {
+            itemName = 'item';
+        }
+
+        if ( !parentName ) {
+            parentName = 'parent';
+        }
+
+        if ( undefined === valueName ) {
+            valueName = 'value';
+        }
+
+        const groupboundSource = new Array();
+        const hashItemGroups = new Array();
+
+        let groupboundSourceIndex = 0;
+
+        const getItem = function ( item ) {
+            let itemObj = item;
+            if ( mappingFields ) {
+                for ( let mappingField in mappingFields ) {
+                    const mappingObject = mappingFields[ mappingField ];
+
+                    if ( mappingObject.name && mappingObject.map ) {
+                        itemObj[ mappingObject.map ] = itemObj[ mappingObject.name ];
+                    }
+                }
+            }
+
+            return itemObj;
+        }
+
+        for ( let obj = 0; obj < data.length; obj++ ) {
+            let item = Object.assign( {}, getItem( data[ obj ] ) );
+
+            item[ names.leaf ] = false;
+
+            let itemKeysHierarchy = new Array();
+            let keys = 0;
+
+            for ( let iGroupColumn = 0; iGroupColumn < groups.length; iGroupColumn++ ) {
+                const group = groups[ iGroupColumn ];
+                const value = item[ group ];
+
+                if ( null === value ) {
+                    continue;
+                }
+
+                itemKeysHierarchy[ keys++ ] = { value: value, group: group, hash: groupHashCodes[ iGroupColumn ] };
+            }
+
+            if ( itemKeysHierarchy.length !== groups.length ) {
+                break;
+            }
+
+            let parentItem = null;
+            let lookupKey = '';
+
+            for ( let q = 0; q < itemKeysHierarchy.length; q++ ) {
+                const itemKey = itemKeysHierarchy[ q ].value;
+                const groupDataField = itemKeysHierarchy[ q ].group;
+                const columnHash = itemKeysHierarchy[ q ].hash;
+
+                lookupKey = lookupKey + '_' + columnHash + '_' + itemKey;
+
+                if ( hashItemGroups[ lookupKey ] !== undefined && hashItemGroups[ lookupKey ] !== null ) {
+                    parentItem = hashItemGroups[ lookupKey ];
+                    continue;
+                }
+
+                if ( parentItem === null ) {
+                    parentItem = { $: {} };
+
+                    parentItem[ names.level ] = 0;
+                    parentItem[ names.leaf ] = false;
+                    parentItem[ parentName ] = null;
+                    parentItem[ groupName ] = itemKey;
+                    parentItem[ itemName ] = item;
+                    parentItem[ 'groupDataField' ] = groupDataField;
+
+                    if ( !parentItem[ groupDataField ] ) {
+                        parentItem[ groupDataField ] = parentItem.data[ groupDataField ];
+                    }
+
+                    if ( item[ names.expanded ] !== undefined ) {
+                        parentItem[ names.expanded ] = item[ names.expanded ];
+                    }
+                    else {
+                        parentItem[ names.expanded ] = false;
+                    }
+
+                    if ( valueName ) {
+                        parentItem[ valueName ] = item[ valueName ];
+                    }
+
+                    parentItem[ collectionName ] = new Array();
+
+                    let uid = groupboundSource.length + startIndex;
+
+                    if ( !this.id || typeof item.$.id === 'number' || isFinite( item.$.id ) ) {
+                        uid = 'Item' + uid;
+                    }
+                    if ( parentItem.$.id === undefined ) {
+                        par
