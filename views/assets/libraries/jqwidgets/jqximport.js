@@ -1385,4 +1385,97 @@
         }
 
         for ( let i = 0; i < length; i++ ) {
-            let dataItem = boundSourc
+            let dataItem = boundSource[ i ];
+
+            for ( let j = 0; j < summaryItems.length; j++ ) {
+                const summaryItem = summaryItems[ j ];
+                let value = dataItem[ summaryItem.dataField ];
+
+                if ( summaryItem.functions ) {
+                    data[ summaryItem.dataField ] = data[ summaryItem.dataField ] || {};
+                    summaryByDataField[ summaryItem.dataField ] = summaryByDataField[ summaryItem.dataField ] || 0;
+                    summaryByDataField[ summaryItem.dataField ]++;
+
+                    const _summaryItemFunction = function ( summaryItemObject ) {
+                        for ( let name in summaryItemObject ) {
+                            let oldValue = data[ summaryItem.dataField ][ name ];
+
+                            if ( oldValue === null || oldValue === undefined ) {
+                                data[ summaryItem.dataField ][ name ] = 0;
+                                oldValue = 0;
+                            }
+
+                            if ( typeof summaryItemObject[ name ] === 'function' ) {
+                                oldValue = summaryItemObject[ name ]( oldValue, value, summaryItem.dataField, dataItem );
+                            }
+                            data[ summaryItem.dataField ][ name ] = oldValue;
+                        }
+                    }
+
+                    let canParse = parseFloat( value );
+
+                    if ( isNaN( canParse ) ) {
+                        canParse = false;
+                    }
+                    else {
+                        canParse = true;
+                    }
+
+                    if ( canParse ) {
+                        value = parseFloat( value );
+                    }
+
+                    if ( typeof value === 'number' && isFinite( value ) ) {
+                        summaryItem.functions.forEach( function ( summaryItemFunction ) {
+                            let oldValue = data[ summaryItem.dataField ][ summaryItemFunction ];
+
+                            if ( oldValue === null || oldValue === undefined ) {
+                                oldValue = 0;
+
+                                if ( summaryItemFunction === 'min' ) {
+                                    oldValue = 9999999999999;
+                                }
+
+                                if ( summaryItemFunction === 'max' ) {
+                                    oldValue = -9999999999999;
+                                }
+
+                                if (summaryItemFunction === 'median') {
+                                    oldValue = [];
+                                }
+                            }
+
+                            if ( summaryItemFunction === 'sum' || summaryItemFunction === 'avg' || summaryItemFunction === 'stdev'
+                                || summaryItemFunction === 'stdevp' || summaryItemFunction === 'var' || summaryItemFunction === 'varp' ) {
+                                oldValue += parseFloat( value );
+                            }
+                            else if ( summaryItemFunction === 'product' ) {
+                                if ( i === 0 )
+                                    oldValue = parseFloat( value );
+                                else
+                                    oldValue *= parseFloat( value );
+                            }
+                            else if ( summaryItemFunction === 'min' ) {
+                                oldValue = Math.min( oldValue, parseFloat( value ) );
+                            }
+                            else if ( summaryItemFunction === 'max' ) {
+                                oldValue = Math.max( oldValue, parseFloat( value ) );
+                            }
+                            else if ( summaryItemFunction === 'count' ) {
+                                oldValue++;
+                            }
+                            else if (summaryItemFunction === 'median') {
+                                oldValue.push(parseFloat(value));
+                            }
+                            else if ( typeof ( summaryItemFunction ) === 'object' ) {
+                                _summaryItemFunction( summaryItemFunction );
+                                return;
+                            }
+
+                            data[ summaryItem.dataField ][ summaryItemFunction ] = oldValue;
+                        } );
+                    }
+                    else {
+                        summaryItem.functions.forEach( function ( summaryItemFunction ) {
+                            if ( summaryItemFunction === 'min' || summaryItemFunction === 'max' || summaryItemFunction === 'count' || summaryItemFunction === 'product' || summaryItemFunction === 'sum'
+                                || summar
