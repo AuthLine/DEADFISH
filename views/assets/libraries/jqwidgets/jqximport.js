@@ -1478,4 +1478,103 @@
                     else {
                         summaryItem.functions.forEach( function ( summaryItemFunction ) {
                             if ( summaryItemFunction === 'min' || summaryItemFunction === 'max' || summaryItemFunction === 'count' || summaryItemFunction === 'product' || summaryItemFunction === 'sum'
-                                || summar
+                                || summaryItemFunction === 'avg' || summaryItemFunction === 'stdev'
+                                || summaryItemFunction === 'stdevp' || summaryItemFunction === 'var' || summaryItemFunction === 'varp' ) {
+                                if ( value === null ) {
+                                    return true;
+                                }
+
+                                let oldValue = data[ summaryItem.dataField ][ summaryItemFunction ];
+
+                                if ( oldValue === null || oldValue === undefined ) {
+                                    oldValue = 0;
+                                }
+
+                                data[ summaryItem.dataField ][ summaryItemFunction ] = oldValue;
+
+                                return true;
+                            }
+
+                            if ( typeof ( summaryItemFunction ) === 'object' ) {
+                                _summaryItemFunction( summaryItemFunction );
+                            }
+                        } );
+                    }
+                }
+            }
+        }
+
+        for ( let j = 0; j < summaryItems.length; j++ ) {
+            const summaryItem = summaryItems[ j ];
+
+            if ( !summaryItem.functions ) {
+                continue;
+            }
+            if ( !data[ summaryItem.dataField ] ) {
+                data[ summaryItem.dataField ] = {};
+
+                summaryItem.functions.forEach( function ( summaryItemFunction ) {
+                    data[ summaryItem.dataField ][ summaryItemFunction ] = 0;
+                } );
+            }
+
+            if ( data[ summaryItem.dataField ][ 'avg' ] !== undefined ) {
+                const value = data[ summaryItem.dataField ][ 'avg' ];
+                const dataValues = summaryByDataField[ summaryItem.dataField ];
+
+                if ( dataValues === 0 || dataValues === undefined ) {
+                    data[ summaryItem.dataField ][ 'avg' ] = 0;
+                }
+                else {
+                    data[ summaryItem.dataField ][ 'avg' ] = value / dataValues;
+                }
+            }
+            else if ( data[ summaryItem.dataField ][ 'count' ] !== undefined ) {
+                data[ summaryItem.dataField ][ 'count' ] = length;
+            }
+            else if (data[summaryItem.dataField]['median'] !== undefined) {
+                let population = data[summaryItem.dataField]['median'];
+
+                population.sort(function (a, b) {
+                    return a - b;
+                });
+
+                data[summaryItem.dataField]['median'] =
+                    0.5 * (population[Math.floor((population.length + 1) / 2) - 1] + population[Math.ceil((population.length + 1) / 2) - 1]);
+            }
+
+            // stdev, stdevp, var, varp.
+            // stdev - Standard deviation on a sample.
+            // varp - Variance on an entire population.
+            // let - Variance on a sample.
+            if ( data[ summaryItem.dataField ][ 'stdev' ] || data[ summaryItem.dataField ][ 'stdevp' ]
+                || data[ summaryItem.dataField ][ 'var' ] || data[ summaryItem.dataField ][ 'varp' ] ) {
+                summaryItem.functions.forEach( function ( summaryItemFunction ) {
+                    if ( summaryItemFunction === 'stdev' || summaryItemFunction === 'var' || summaryItemFunction === 'varp' || summaryItemFunction === 'stdevp' ) {
+                        const value = data[ summaryItem.dataField ][ summaryItemFunction ];
+                        const count = length;
+                        const average = ( value / length );
+                        let sumSq = 0.0;
+
+                        for ( let i = 0; i < length; i++ ) {
+                            let dataItem = boundSource[ i ];
+                            let value = dataItem[ summaryItem.dataField ];
+
+                            sumSq += ( value - average ) * ( value - average );
+                        }
+
+                        let denominator = ( summaryItemFunction === 'stdevp' || summaryItemFunction === 'varp' ) ? count : count - 1;
+
+                        if ( denominator === 0 ) {
+                            denominator = 1;
+                        }
+
+                        if ( summaryItemFunction === 'var' || summaryItemFunction === 'varp' ) {
+                            data[ summaryItem.dataField ][ summaryItemFunction ] = sumSq / denominator;
+                        }
+                        else if ( summaryItemFunction === 'stdevp' || summaryItemFunction === 'stdev' ) {
+                            data[ summaryItem.dataField ][ summaryItemFunction ] = Math.sqrt( sumSq / denominator );
+                        }
+                    }
+                } );
+            }
