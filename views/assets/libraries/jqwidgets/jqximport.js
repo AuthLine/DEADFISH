@@ -1578,3 +1578,154 @@
                     }
                 } );
             }
+        }
+        return data;
+    }
+
+    deserialize(stringValue, type, nullable) {
+        const nullValue = stringValue === 'null';
+
+        if (stringValue === undefined || (nullValue && !nullable)) {
+            return undefined;
+        }
+
+        if (nullValue && nullable) {
+            return null;
+        }
+
+        if (type === 'boolean' || type === 'bool') {
+            if (stringValue === null) {
+                return false;
+            }
+
+            // Boolean properties are set based on the presence of the attribute: if the attribute exists at all, the value is true.
+            return true;
+        }
+        else if (type === 'number' || type === 'float') {
+            if (stringValue === 'NaN') {
+                return NaN;
+            }
+
+            if (stringValue === 'Infinity') {
+                return Infinity;
+            }
+
+            if (stringValue === '-Infinity') {
+                return -Infinity;
+            }
+
+            return parseFloat(stringValue);
+        }
+        else if (type === 'int' || type === 'integer') {
+            if (stringValue === 'NaN') {
+                return NaN;
+            }
+
+            if (stringValue === 'Infinity') {
+                return Infinity;
+            }
+
+            if (stringValue === '-Infinity') {
+                return -Infinity;
+            }
+
+            return parseInt(stringValue);
+        }
+        else if (type === 'string') {
+            return stringValue;
+        }
+        else if (type === 'any') {
+            return stringValue;
+        }
+        else if (type === 'date') {
+            return new Date(stringValue);
+        }
+        else if (type === 'function') {
+            if (typeof window[stringValue] === 'function') {
+                return window[stringValue];
+            }
+        }
+        else if (type === 'array' || type === 'object') {
+            try {
+                const jsonObject = JSON.parse(stringValue);
+
+                if (jsonObject) {
+                    return jsonObject;
+                }
+            }
+            catch (er) {
+                if (window[stringValue] && (typeof window[stringValue] === 'object')) {
+                    return window[stringValue];
+                }
+                else if (type === 'array' && stringValue.indexOf('[') >= 0) {
+                    if (stringValue.indexOf('{') >= 0) {
+                        let array = stringValue.replace(/{/ig, '').replace('[', '').replace(']', '').replace(/'/ig, '').replace(/"/ig, '').trim();
+
+                        array = array.split('},');
+
+                        for (let i = 0; i < array.length; i++) {
+                            let parsedObject = {
+                            };
+
+                            let parts = array[i].trim().split(',');
+
+                            for (let j = 0; j < parts.length; j++) {
+                                const key = parts[j].split(':')[0].trim();
+                                const value = parts[j].split(':')[1].trim();
+
+                                parsedObject[key] = value;
+                            }
+
+                            array[i] = parsedObject;
+                        }
+
+                        return array;
+                    }
+
+                    const array = stringValue.replace('[', '').replace(']', '').replace(/'/ig, '').replace(/"/ig, '').trim().split(',');
+
+                    return array;
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    _getDataItem( dataSourceItem, index ) {
+        const that = this;
+        const itemObject = {};
+        const unboundMode = typeof ( that.dataSource ) === 'number' || that.dataSourceLength;
+
+        if ( !dataSourceItem ) {
+            return { $: { id: index, isEmpty: true, index: index } }
+        }
+
+        if ( typeof dataSourceItem === 'string' ) {
+            dataSourceItem = { '': dataSourceItem };
+        }
+
+        if ( unboundMode ) {
+            for ( let j = 0; j < that.dataFields.length; j++ ) {
+                const dataField = that.dataFields ? that.dataFields[ j ] : {};
+
+                itemObject[ dataField.name ] = '';
+            }
+
+            itemObject.$ = {};
+            itemObject.$.id = index;
+            itemObject.$.index = index;
+
+            return itemObject;
+        }
+
+        const dataItem = dataSourceItem;
+
+        if ( dataItem.expanded !== undefined ) {
+            itemObject.expanded = dataItem.expanded;
+
+            if ( dataItem.expanded === 'true' || dataItem.expanded === true || dataItem.expanded === 1 ) {
+                itemObject.expanded = true;
+            }
+            else {
+                itemObject.expanded = false
