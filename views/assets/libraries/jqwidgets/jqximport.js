@@ -1728,4 +1728,141 @@
                 itemObject.expanded = true;
             }
             else {
-                itemObject.expanded = false
+                itemObject.expanded = false;
+            }
+        }
+
+        if ( that.childrenDataField ) {
+            if ( dataItem[ that.childrenDataField ] !== undefined ) {
+                itemObject.children = dataItem[ that.childrenDataField ];
+            }
+        }
+        else {
+            if ( dataItem.children !== undefined ) {
+                itemObject.children = dataItem.children;
+            }
+            else if ( dataItem.items !== undefined ) {
+                itemObject.children = dataItem.items;
+            }
+        }
+        if ( dataItem.leaf !== undefined ) {
+            itemObject.leaf = dataItem.leaf;
+        }
+
+        if ( dataItem.level !== undefined ) {
+            itemObject.level = dataItem.level;
+        }
+
+        if ( that.keyDataField ) {
+            if ( dataItem[ that.keyDataField ] !== undefined ) {
+                itemObject[ that.keyDataField ] = dataItem[ that.keyDataField ];
+            }
+        }
+
+        if ( that.parentDataField ) {
+            if ( dataItem[ that.parentDataField ] !== undefined ) {
+                itemObject[ that.parentDataField ] = dataItem[ that.parentDataField ];
+            }
+        }
+
+        if ( that.dataFields.length === 0 ) {
+            const names = Object.getOwnPropertyNames( dataSourceItem );
+
+            for ( let i = 0; i < names.length; i++ ) {
+                if ( names[ i ] === '$' ) {
+                    continue;
+                }
+
+                that.dataFields.push( { name: names[ i ], dataType: 'string' } );
+            }
+        }
+
+        for ( let j = 0; j < that.dataFields.length; j++ ) {
+            const dataField = that.dataFields ? that.dataFields[ j ] : {};
+            let value = '';
+
+            dataField.dataType = dataField.type;
+            
+            if ( undefined === dataField || dataField === null ) {
+                continue;
+            }
+
+            if ( dataSourceItem.length ) {
+                value = dataSourceItem[ j ];
+            }
+
+            if ( dataField.map ) {
+                let splitMap = dataField.map.split( that.mapChar );
+
+                if ( splitMap.length > 0 ) {
+                    let dataMappedItem = dataItem;
+
+                    for ( let p = 0; p < splitMap.length; p++ ) {
+                        if ( !dataItem ) {
+                            continue;
+                        }
+
+                        dataMappedItem = dataMappedItem[ splitMap[ p ] ];
+                    }
+
+                    value = dataMappedItem;
+                }
+                else {
+                    value = dataItem[ dataField.map ];
+                }
+            }
+
+            if ( value !== undefined && value !== null ) {
+                value = value.toString();
+            }
+            else {
+                if ( value === undefined && value !== null ) {
+                    value = '';
+                }
+            }
+
+
+            let isEmptyString = false;
+            // searches by both selectors when necessary.
+            if ( value === '' ) {
+                isEmptyString = true;
+                value = dataSourceItem[ dataField.name ];
+
+                if ( value !== undefined && value !== null ) {
+                    if ( dataField.dataType !== 'array' ) {
+                        if ( dataField.dataType !== 'date' ) {
+                            value = value.toString();
+                        }
+                    }
+                }
+                else {
+                    value = '';
+                }
+            }
+
+            if ( value === '[object Object]' && dataField.map && isEmptyString ) {
+                value = '';
+            }
+
+            if ( that._cachedValues[ '' + value + '_' + dataField.dataType ] ) {
+                value = that._cachedValues[ '' + value + '_' + dataField.dataType ];
+            }
+            else {
+                if ( dataField.dataType === 'bool' || dataField.dataType === 'boolean' ) {
+                    if ( value === 'true' || value === '1' ) {
+                        value = true;
+                    }
+                    else if ( value === 'false' || value === '0' ) {
+                        value = false;
+                    }
+                }
+                else {
+                    value = that.deserialize( '' + value, dataField.dataType, true );
+                }
+
+                that._cachedValues[ value + '_' + dataField.dataType ] = value;
+            }
+
+            if ( dataField.dataType !== 'string' && dataField.dataType !== 'boolean' && dataField.dataType !== 'bool' ) {
+                if ( isNaN( value ) || value === -Infinity || value === Infinity ) {
+       
