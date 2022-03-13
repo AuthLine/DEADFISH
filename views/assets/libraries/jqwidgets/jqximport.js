@@ -1865,4 +1865,158 @@
 
             if ( dataField.dataType !== 'string' && dataField.dataType !== 'boolean' && dataField.dataType !== 'bool' ) {
                 if ( isNaN( value ) || value === -Infinity || value === Infinity ) {
-       
+                    value = 0;
+                }
+            }
+
+            itemObject[ dataField.name ] = value;
+        }
+
+        let itemObjectId = index;
+
+        if ( that.id ) {
+            itemObjectId = dataItem[ that.id ];
+            if ( typeof ( itemObjectId ) === 'object' ) {
+                itemObjectId = index;
+            }
+        }
+        else if ( !that.virtualDataSource && that.dataItemById && that.dataItemById[ itemObjectId ] ) {
+            itemObjectId = that.length;
+        }
+
+        if ( !itemObject.$ ) {
+            itemObject.$ = {};
+        }
+
+        itemObject.$.id = itemObjectId;
+        itemObject.$.index = index;
+
+        return new Object( itemObject );
+    }
+
+    _bindToArray() {
+        const that = this;
+
+        const unboundMode = typeof ( that.dataSource ) === 'number' || that.dataSourceLength;
+        const dataArray = [];
+
+        that.boundSource.canNotify = false;
+
+        for ( let i = 0; i < that.length; i++ ) {
+            const dataSourceItem = unboundMode ? {} : that.dataSource[ i ];
+            const itemObject = that._getDataItem( dataSourceItem, i );
+
+            dataArray.push( itemObject );
+        }
+
+        if ( unboundMode && that.dataSourceLength && that.dataSource.length > 0 ) {
+            for ( let i = 0; i < that.dataSource.length; i++ ) {
+                const cell = that.dataSource[ i ].cell;
+                const value = that.dataSource[ i ].value;
+
+                const row = cell.replace( /[^0-9]/g, '' );
+                const dataField = cell.replace( /[0-9]/g, '' );
+
+                dataArray[ row - 1 ][ dataField ] = value;
+            }
+        }
+
+        that.boundSource = dataArray;
+
+        for ( let i = 0; i < that.length; i++ ) {
+            that[ i ] = that.boundSource[ i ];
+            that.dataItemById[ that[ i ].$.id ] = that[ i ];
+        }
+
+        that.boundSource.canNotify = true;
+    }
+
+    _bindToJSON() {
+        const that = this;
+
+        const dataArray = [];
+
+        const dataEntries = Object.entries( that.dataSource );
+
+        that.boundSource.canNotify = false;
+
+        for ( let i = 0; i < dataEntries.length; i++ ) {
+            const dataSourceItem = dataEntries[ i ];
+            const itemObject = that._getDataItem( dataSourceItem, i );
+
+            dataArray.push( itemObject );
+        }
+
+        that.boundSource = false === that.observable ? dataArray : new JQX.ObservableArray( dataArray );
+
+        for ( let i = 0; i < that.length; i++ ) {
+            that[ i ] = that.boundSource[ i ];
+            that.dataItemById[ that[ i ].$.id ] = that[ i ];
+        }
+
+        that.boundSource.canNotify = true;
+    }
+
+    sortBy( dataField, dataType, orderBy ) {
+        const that = this;
+
+        if ( !dataType ) {
+            for ( let i = 0; i < that.dataFields.length; i++ ) {
+                const field = that.dataFields[ i ];
+
+                if ( field.name === dataField ) {
+                    dataType = field.dataType;
+                    break;
+                }
+            }
+        }
+
+        if ( that.boundHierarchy ) {
+            if ( ( !dataField || dataField.length === 0 ) && that.groupBy.length > 0 ) {
+                that.refreshHierarchy();
+                return;
+            }
+
+            const sortBy = function ( hierarchy ) {
+                that._sort( hierarchy, dataField, orderBy, dataType );
+
+                for ( let i = 0; i < hierarchy.length; i++ ) {
+                    const item = hierarchy[ i ];
+
+                    if ( item[ 'children' ] ) {
+                        sortBy( item[ 'children' ], dataField, orderBy, dataType );
+                    }
+                }
+            }
+
+            sortBy( that.boundHierarchy );
+        }
+        else {
+            that._sort( that.boundSource, dataField, orderBy, dataType );
+        }
+    }
+
+    _createFilter( dataType, filterExpressions ) {
+        const filterOperators = {
+            '=': 'EQUAL',
+            '<>': 'NOT_EQUAL',
+            '<': 'LESS_THAN',
+            '>': 'GREATER_THAN',
+            '<=': 'LESS_THAN_OR_EQUAL',
+            '>=': 'GREATER_THAN_OR_EQUAL',
+            'equal': 'EQUAL',
+            'not equal': 'NOT_EQUAL',
+            'less than': 'LESS_THAN',
+            'greater than': 'GREATER_THAN',
+            'greater than or equal': 'GREATER_THAN_OR_EQUAL',
+            'less than or equal': 'LESS_THAN_OR_EQUAL',
+            'starts with': 'STARTS_WITH',
+            'ends with': 'ENDS_WITH',
+            'null': 'null',
+            '': 'EMPTY',
+            'isblank': 'EMPTY',
+            'isnotblank': 'NOT_EMPTY',
+            'contains': 'CONTAINS',
+            'notcontains': 'DOES_NOT_CONTAIN',
+            'startswith': 'STARTS_WITH',
+            'endsw
