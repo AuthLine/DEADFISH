@@ -2170,4 +2170,167 @@
         else {
             defaultResult = false;
             operatorSpecificEval = function ( result, filterGroup, row ) {
-                r
+                return result || filterGroup.evaluate( row[ filterGroup.dataField ] );
+            };
+        }
+
+        for ( let i = 0; i < filters.length; i++ ) {
+            const filter = filters[ i ];
+            const dataField = filter[ 0 ];
+            let filterGroup = null;
+
+            if ( filter[ 1 ] instanceof JQX.FilterGroup ) {
+                filterGroup = filter[ 1 ];
+            }
+            else {
+                filterGroup = that._createFilter( dataType( dataField ), filter.splice( 1 ) );
+            }
+
+            if ( filterGroup ) {
+                dataFields.push( dataField );
+                filterGroup.dataField = dataField;
+                filterGroups.push( filterGroup );
+            }
+        }
+
+        if ( that.boundHierarchy ) {
+            const filter = function ( row ) {
+                let result = defaultResult;
+
+                for ( let j = 0; j < filterGroups.length; j++ ) {
+                    const filterGroup = filterGroups[ j ];
+
+                    result = operatorSpecificEval( result, filterGroup, row );
+                }
+
+                row.$.filtered = result;
+
+                return result;
+            }
+
+            const filterBy = function ( hierarchy, parentItem, root ) {
+                let filteredCount = 0;
+
+                for ( let i = 0; i < hierarchy.length; i++ ) {
+                    const item = hierarchy[ i ];
+
+                    filter( item );
+
+                    if ( item.$.filtered ) {
+                        filteredCount++;
+                    }
+
+                    if ( item[ 'children' ] ) {
+                        filterBy( item[ 'children' ], item, parentItem );
+                    }
+                }
+
+                if ( filteredCount > 0 && that.groupBy.length > 0 && parentItem ) {
+                    parentItem.$.filtered = true;
+
+                    if ( root && !root.$.filtered ) {
+                        root.$.filtered = true;
+                    }
+                }
+                else {
+                    if ( filteredCount > 0 && filteredCount !== hierarchy.length && parentItem ) {
+                        parentItem.$.filtered = null;
+
+                        if ( root && !root.$.filtered ) {
+                            root.$.filtered = null;
+                        }
+                    }
+                }
+            }
+
+            filterBy( that.boundHierarchy, null, null );
+        }
+        else {
+            for ( let i = 0; i < that.boundSource.length; i++ ) {
+                const row = that.boundSource[ i ];
+
+                let result = defaultResult;
+
+                for ( let j = 0; j < filterGroups.length; j++ ) {
+                    const filterGroup = filterGroups[ j ];
+
+                    result = operatorSpecificEval( result, filterGroup, row );
+                }
+
+                row.$.filtered = result;
+            }
+        }
+
+        if ( that.onFilter ) {
+            that.onFilter()
+        }
+    }
+
+    clearGroup() {
+        const that = this;
+
+        that.groupBy = [];
+        that.boundHierarchy = null;
+        that.refreshHierarchy();
+
+        if ( that.onGroup ) {
+            that.onGroup()
+        }
+    }
+
+    clearFilter() {
+        const that = this;
+
+        for ( let i = 0; i < that.boundSource.length; i++ ) {
+            const row = that.boundSource[ i ];
+
+            row.$.filtered = true;
+        }
+
+        if ( that.boundHierarchy ) {
+            const filterBy = function ( hierarchy, parentItem, root ) {
+                //let filteredCount = 0;
+
+                for ( let i = 0; i < hierarchy.length; i++ ) {
+                    const item = hierarchy[ i ];
+
+                    item.$.filtered = true;
+
+                    if ( item.$.filtered ) {
+                        //filteredCount++;
+                    }
+
+                    if ( item[ 'children' ] ) {
+                        filterBy( item[ 'children' ], item, parentItem );
+                    }
+                }
+
+                if ( parentItem ) {
+                    parentItem.$.filtered = true;
+
+                    if ( root && !root.$.filtered ) {
+                        root.$.filtered = true;
+                    }
+                }
+            }
+
+            filterBy( that.boundHierarchy, null, null );
+        }
+
+        if ( that.onFilter ) {
+            that.onFilter()
+        }
+    }
+
+    clearSort() {
+        const that = this;
+
+        that._sort( that.boundSource, [], [], [] );
+    }
+
+    _sort( dataSource, sortColumns, directions, dataTypes, customSortingCallback ) {
+        const that = this;
+
+        let isObservableArray = false;
+
+        if ( dataSource
