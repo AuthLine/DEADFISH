@@ -2019,4 +2019,155 @@
             'contains': 'CONTAINS',
             'notcontains': 'DOES_NOT_CONTAIN',
             'startswith': 'STARTS_WITH',
-            'endsw
+            'endswith': 'ENDS_WITH',
+            'NULL': 'NULL',
+            'NOT_NULL': 'NOT_NULL'
+        };
+
+        let filterExpressionsArray = [];
+
+        for ( let i = 0; i < filterExpressions.length; i++ ) {
+            const filterExpression = filterExpressions[ i ];
+
+            const filterExpressionParts = filterExpression.indexOf( '"' ) === -1 ? filterExpression.split( ' ' ) : filterExpression.split( '"' );
+            let filter = [];
+
+            for ( let j = 0; j < filterExpressionParts.length; j++ ) {
+                const part = filterExpressionParts[ j ];
+
+                if ( part !== '' ) {
+                    filter.push( part.trim() );
+                }
+            }
+
+            filterExpressionsArray.push( filter );
+        }
+
+        const filterGroup = new JQX.FilterGroup();
+        const filterGroupOperators = [];
+        const filterSubGroups = [];
+
+        for ( let i = 0; i < filterExpressionsArray.length; i++ ) {
+            const filterExpression = filterExpressionsArray[ i ];
+
+
+            if ( filterExpression.length > 1 ) {
+                const filterSubGroup = new JQX.FilterGroup();
+
+                let operator = 'and';
+                let filterExpressionPartsCounter = 0;
+
+                for ( let j = 0; j < filterExpression.length; j++ ) {
+                    const value = filterExpression[ j ];
+
+                    if ( value === 'and' || value === 'or' ) {
+                        operator = value;
+                        continue;
+                    }
+
+                    filterExpressionPartsCounter++;
+
+                    if ( filterExpressionPartsCounter === 2 ) {
+                        const filter = filterSubGroup.createFilter( dataType, value, filterOperators[ filterExpression[ j - 1 ] ] );
+
+                        filterExpressionPartsCounter = 0;
+
+                        if ( operator ) {
+                            filterSubGroup.addFilter( operator, filter );
+                        }
+                    }
+                }
+
+                filterSubGroups.push( filterSubGroup );
+            }
+            else {
+                const filterGroupOperator = filterExpression[ 0 ];
+
+                if ( filterGroupOperator !== 'and' && filterGroupOperator !== 'or' ) {
+                    throw new Error( 'Filter Exprresion expects "AND" or "OR", but the token is: ' + filterGroupOperator );
+                }
+
+                filterGroupOperators.push( filterGroupOperator );
+            }
+        }
+
+        let operatorsCounter = 0;
+
+        if ( filterSubGroups.length === 1 ) {
+            return filterSubGroups[ 0 ];
+        }
+
+        for ( let i = 0; i < filterSubGroups.length; i++ ) {
+            let operator = filterGroupOperators[ operatorsCounter ];
+
+            if ( ( i + 1 ) % 2 === 0 ) {
+                operatorsCounter++;
+            }
+
+            if ( !operator ) {
+                operator = 'and';
+            }
+
+            filterGroup.addFilter( operator, filterSubGroups[ i ] );
+        }
+
+        return filterGroup;
+    }
+
+    filterBy( dataField, ...filterExpressions ) {
+        const that = this;
+
+
+        const dataType = ( () => {
+            for ( let i = 0; i < that.dataFields.length; i++ ) {
+                const field = that.dataFields[ i ];
+
+                if ( field.name === dataField ) {
+                    return field.dataType;
+                }
+            }
+        } )();
+
+
+        const filterGroup = that._createFilter( dataType, filterExpressions );
+
+        let filteredData = that.boundSource.filter( ( value ) => {
+            const evaluation = filterGroup.evaluate( value[ dataField ] );
+
+            return evaluation;
+        } );
+
+        return filteredData;
+    }
+
+    _filter( filters, operator = 'and' ) {
+        const that = this;
+        const filterGroups = [];
+        const dataFields = [];
+
+        if ( filters.length === 0 ) {
+            that.clearFilter();
+            return;
+        }
+
+        const dataType = ( dataField ) => {
+            for ( let i = 0; i < that.dataFields.length; i++ ) {
+                const field = that.dataFields[ i ];
+
+                if ( field.name === dataField ) {
+                    return field.dataType;
+                }
+            }
+        };
+        let defaultResult, operatorSpecificEval;
+
+        if ( operator === 'and' ) {
+            defaultResult = true;
+            operatorSpecificEval = function ( result, filterGroup, row ) {
+                return result && filterGroup.evaluate( row[ filterGroup.dataField ] );
+            };
+        }
+        else {
+            defaultResult = false;
+            operatorSpecificEval = function ( result, filterGroup, row ) {
+                r
