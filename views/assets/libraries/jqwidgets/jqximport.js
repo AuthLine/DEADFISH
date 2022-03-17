@@ -2333,4 +2333,130 @@
 
         let isObservableArray = false;
 
-        if ( dataSource
+        if ( dataSource.length === 0 ) {
+            return;
+        }
+
+        if ( dataSource && dataSource.constructor && dataSource instanceof JQX.ObservableArray ) {
+            isObservableArray = true;
+        }
+
+        if ( !dataSource || !( Array.isArray( dataSource ) ) || dataSource.length === 0 ||
+            !sortColumns || Array.isArray( sortColumns ) && sortColumns.length === 0 ) {
+            if ( !isObservableArray && !that.boundHierarchy ) {
+                throw new Error( 'sort: Missing or Invalid arguments!' );
+            }
+        }
+
+        if ( typeof sortColumns === 'string' ) {
+            sortColumns = [ sortColumns ];
+        }
+
+        const directionCoefficients = [],
+            compareFunctions = [];
+
+        if ( directions === undefined ) {
+            directions = [];
+        }
+
+        const getCompareFunction = function ( a, knownDataType ) {
+            // gets data type of column (not necessary if the Grid provides this information)
+            const dataType = knownDataType || typeof a;
+            let compareFunction;
+
+            switch ( dataType ) {
+                case 'string':
+                    compareFunction = new Intl.Collator().compare;
+                    break;
+                case 'number':
+                    compareFunction = function ( a, b ) {
+                        return a - b;
+                    };
+                    break;
+                case 'boolean':
+                case 'bool':
+                    compareFunction = function ( a, b ) {
+                        if ( a === b ) {
+                            return 0;
+                        }
+                        else if ( a === false ) {
+                            return -1;
+                        }
+                        else {
+                            return 1;
+                        }
+                    };
+                    break;
+                case 'date':
+                case 'time':
+                case 'dateTime':
+                    if ( a instanceof Date ) {
+                        compareFunction = function ( a, b ) {
+                            return a.getTime() - b.getTime();
+                        };
+                    }
+                    else if ( a instanceof JQX.Utilities.DateTime ||
+                        a instanceof JQX.Utilities.BigNumber ) {
+                        compareFunction = function ( a, b ) {
+                            return a.compare( b );
+                        };
+                    }
+                    break;
+                case 'object':
+                    if ( a instanceof Date ) {
+                        compareFunction = function ( a, b ) {
+                            return a.getTime() - b.getTime();
+                        };
+                    }
+                    else if ( a instanceof JQX.Utilities.DateTime ||
+                        a instanceof JQX.Utilities.BigNumber ) {
+                        compareFunction = function ( a, b ) {
+                            return a.compare( b );
+                        };
+                    }
+                    else if ( a instanceof JQX.Utilities.Complex || ( window.NIComplex && a instanceof window.NIComplex ) ) {
+                        const complexNumericProcessor = new JQX.Utilities.ComplexNumericProcessor();
+
+                        compareFunction = function ( a, b ) {
+                            return complexNumericProcessor.compareComplexNumbers( a, b );
+                        }
+                    }
+
+                    break;
+            }
+
+            return compareFunction;
+        }
+
+        for ( let i = 0; i < sortColumns.length; i++ ) {
+            if ( directions[ i ] === undefined || directions[ i ] === 'asc' || directions[ i ] === 'ascending' ) {
+                directionCoefficients[ i ] = 1;
+            }
+            else {
+                directionCoefficients[ i ] = -1;
+            }
+
+            const value = dataSource[ 0 ][ sortColumns[ i ] ];
+
+            compareFunctions[ i ] = getCompareFunction( value, dataTypes[ i ] );
+        }
+
+        if ( customSortingCallback ) {
+            customSortingCallback( dataSource, sortColumns, directions, compareFunctions );
+            return;
+        }
+
+        dataSource.sort( function ( a, b ) {
+            for ( let i = 0; i < sortColumns.length; i++ ) {
+                const result = compareFunctions[ i ]( a[ sortColumns[ i ] ], b[ sortColumns[ i ] ] );
+
+                if ( result === 0 ) {
+                    if ( sortColumns[ i + 1 ] ) {
+                        continue;
+                    }
+                    else if ( a._index !== undefined ) {
+                        // makes sorting stable
+                        return ( a._index - b._index ) * directionCoefficients[ i ];
+                    }
+
+                  
