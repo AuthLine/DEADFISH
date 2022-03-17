@@ -2586,4 +2586,174 @@
             return compareFunction;
         }
 
-        if ( !dataSource || !( Array.isArray( dataSource ) ) || dataSource.length
+        if ( !dataSource || !( Array.isArray( dataSource ) ) || dataSource.length === 0 ||
+            !sortColumns || Array.isArray( sortColumns ) && sortColumns.length === 0 ) {
+            return;
+        }
+
+        if ( typeof sortColumns === 'string' ) {
+            sortColumns = [ sortColumns ];
+        }
+
+        const directionCoefficients = [],
+            compareFunctions = [];
+
+        if ( directions === undefined ) {
+            directions = [];
+        }
+
+        for ( let i = 0; i < sortColumns.length; i++ ) {
+            if ( directions[ i ] === undefined || directions[ i ] === 'asc' || directions[ i ] === 'ascending' ) {
+                directionCoefficients[ i ] = 1;
+            }
+            else {
+                directionCoefficients[ i ] = -1;
+            }
+
+            compareFunctions[ i ] = getCompareFunction( dataSource[ 0 ][ sortColumns[ i ] ] );
+        }
+
+        if ( customSortingCallback ) {
+            customSortingCallback( dataSource, sortColumns, directions, compareFunctions );
+            return;
+        }
+
+        const sortedData = dataSource.slice( 0 );
+
+        sortedData.sort( function ( a, b ) {
+            for ( let i = 0; i < sortColumns.length; i++ ) {
+                const result = compareFunctions[ i ]( a[ sortColumns[ i ] ], b[ sortColumns[ i ] ] );
+
+                if ( result === 0 ) {
+                    if ( sortColumns[ i + 1 ] ) {
+                        continue;
+                    }
+                    else if ( a._index !== undefined ) {
+                        // makes sorting stable
+                        return ( a._index - b._index ) * directionCoefficients[ i ];
+                    }
+
+                    return 0;
+                }
+
+                return result * directionCoefficients[ i ];
+            }
+        } );
+
+        return sortedData;
+    }
+}
+
+window.jqxDataSource = DataAdapter;
+
+class Ajax {
+    constructor ( config, callback ) {
+        const that = this;
+
+        that.config = config;
+        that.callback = callback;
+
+        if ( config.autoFetch === false ) {
+            return;
+        }
+
+        that.call( config );
+    }
+
+    call( config ) {
+        const that = this;
+
+        if ( !config ) {
+            config = that.config;
+        }
+
+        let method = 'GET',
+            url = config.url,
+            body = null,
+            async = true;
+
+        if ( config.type ) {
+            method = config.type;
+        }
+
+        if ( config.data ) {
+            if ( method === 'GET' ) {
+                url += '?';
+
+                for ( let prop in config.data ) {
+                    if ( config.data.hasOwnProperty( prop ) ) {
+                        url += encodeURI( prop + '=' + config.data[ prop ] + '&' );
+                    }
+                }
+
+                if ( url.charAt( url.length - 1 ) === '&' ) {
+                    url = url.slice( 0, url.length - 1 );
+                }
+            }
+            else if ( method === 'POST' ) {
+                body = JSON.stringify( config.data );
+            }
+        }
+
+        if ( config && config.async === false && config.dataSourceType !== 'xlsx' ) {
+            async = false;
+        }
+
+        if ( window.fetch !== undefined && async ) {
+            that.ajaxFetch( config, method, url, body );
+        }
+        else {
+            that.ajaxXMLHttpRequest( config, method, url, body, async );
+        }
+    }
+
+    ajaxFetch( config, method, url, body ) {
+        // prepare fetch config
+        const that = this;
+        const fetchInit = { method: method };
+        let parseMethod;
+
+        switch ( config.dataSourceType ) {
+            case 'json':
+                parseMethod = 'json';
+                break;
+            case 'xlsx':
+                parseMethod = 'arrayBuffer';
+                break;
+            default:
+                parseMethod = 'text';
+        }
+
+        if ( config ) {
+            if ( config.contentType ) {
+                fetchInit.headers = new Headers( {
+                    'Content-Type': config.contentType
+                } );
+            }
+        }
+
+        if ( body !== null ) {
+            fetchInit.body = body;
+        }
+
+        let status, fetchTimeout, timeouted;
+
+        if ( config.timeout ) {
+            fetchTimeout = setTimeout( function () {
+                timeouted = true;
+            }, config.timeout );
+        }
+
+        if ( config.beforeSend ) {
+            const beforeSendResult = config.beforeSend( fetchInit, config );
+
+            if ( beforeSendResult === false ) {
+                return;
+            }
+        }
+
+        // fetch resource
+        fetch( url, fetchInit )
+            .then( function ( response ) {
+                if ( timeouted ) {
+        
