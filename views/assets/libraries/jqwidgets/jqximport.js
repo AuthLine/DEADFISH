@@ -2459,4 +2459,131 @@
                         return ( a._index - b._index ) * directionCoefficients[ i ];
                     }
 
-                  
+                    return 0;
+                }
+
+                return result * directionCoefficients[ i ];
+            }
+
+            if ( sortColumns.length === 0 ) {
+                if ( a.$.index < b.$.index ) {
+                    return -1;
+                }
+
+                if ( a.$.index > b.$.index ) {
+                    return 1;
+                }
+
+                return 0;
+
+            }
+        } );
+
+        for ( let i = 0; i < dataSource.length; i++ ) {
+            that[ i ] = dataSource[ i ];
+        }
+    }
+
+    static Filter( dataSource, filterColumns, filterGroups, customFilteringCallback, operator = 'and' ) {
+        let defaultResult, operatorSpecificEval;
+
+        if ( operator === 'and' ) {
+            defaultResult = true;
+            operatorSpecificEval = function ( result, dataItem, filterColumn, filterGroup ) {
+                if ( customFilteringCallback ) {
+                    return result && customFilteringCallback( dataItem, filterColumn, filterGroup );
+                }
+
+                return result && filterGroup.evaluate( dataItem[ filterColumn ] );
+            };
+        }
+        else {
+            defaultResult = false;
+            operatorSpecificEval = function ( result, dataItem, filterColumn, filterGroup ) {
+                if ( customFilteringCallback ) {
+                    return result || customFilteringCallback( dataItem, filterColumn, filterGroup );
+                }
+
+                return result || filterGroup.evaluate( dataItem[ filterColumn ] );
+            };
+        }
+
+        const filteredData = dataSource.filter( ( dataItem ) => {
+            let result = defaultResult;
+
+            for ( let i = 0; i < filterGroups.length; i++ ) {
+                const filterGroup = filterGroups[ i ];
+                const filterColumn = filterColumns[ i ];
+
+                result = operatorSpecificEval( result, dataItem, filterColumn, filterGroup );
+            }
+
+            return result;
+        } );
+
+        return filteredData;
+    }
+
+    filter( filterColumns, filterGroups, customFilteringCallback ) {
+        JQX.ExcelAdapter.Filter( this.boundSource, filterColumns, filterGroups, customFilteringCallback );
+    }
+
+    sort( sortColumns, directions, customSortingCallback ) {
+        JQX.ExcelAdapter.Sort( this.boundSource, sortColumns, directions, customSortingCallback );
+    }
+
+    static Sort( dataSource, sortColumns, directions, customSortingCallback ) {
+        const getCompareFunction = function ( a ) {
+            // gets data type of column (not necessary if the Grid provides this information)
+            const dataType = typeof a;
+            let compareFunction;
+
+            switch ( dataType ) {
+                case 'string':
+                    compareFunction = new Intl.Collator().compare;
+                    break;
+                case 'number':
+                    compareFunction = function ( a, b ) {
+                        return a - b;
+                    };
+                    break;
+                case 'boolean':
+                    compareFunction = function ( a, b ) {
+                        if ( a === b ) {
+                            return 0;
+                        }
+                        else if ( a === false ) {
+                            return -1;
+                        }
+                        else {
+                            return 1;
+                        }
+                    };
+                    break;
+                case 'object':
+                    if ( a instanceof Date ) {
+                        compareFunction = function ( a, b ) {
+                            return a.getTime() - b.getTime();
+                        };
+                    }
+                    else if ( a instanceof JQX.Utilities.DateTime ||
+                        a instanceof BigNumberNG ) {
+                        compareFunction = function ( a, b ) {
+                            return a.compare( b );
+                        };
+                    }
+                    else if ( a instanceof JQX.Utilities.Complex || ( window.NIComplex && a instanceof window.NIComplex ) ) {
+                        const complexNumericProcessor = new JQX.Utilities.ComplexNumericProcessor();
+
+                        compareFunction = function ( a, b ) {
+                            return complexNumericProcessor.compareComplexNumbers( a, b );
+                        }
+                    }
+
+                    break;
+            }
+
+            return compareFunction;
+        }
+
+        if ( !dataSource || !( Array.isArray( dataSource ) ) || dataSource.length
