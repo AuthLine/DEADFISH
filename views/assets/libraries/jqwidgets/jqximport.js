@@ -2899,4 +2899,48 @@ class Ajax {
             else {
                 let text = '';
 
-                texts = Arr
+                texts = Array.from( texts );
+                texts.forEach( function ( t ) {
+                    text += t.innerHTML;
+                } );
+                sharedStringsCollection.push( text );
+            }
+        } );
+
+        rows.forEach( function ( row ) {
+            const rowObject = {},
+                cells = Array.from( row.getElementsByTagName( 'c' ) );
+
+            cells.forEach( function ( cell/*, index*/ ) {
+                const column = cell.getAttribute( 'r' ).match( /\D+/ )[ 0 ],
+                    type = cell.getAttribute( 't' ),
+                    xmlValue = cell.getElementsByTagName( 'v' )[ 0 ].innerHTML;
+                let value;
+
+                switch ( type ) {
+                    case 's':
+                        // string
+                        value = sharedStringsCollection[ parseFloat( xmlValue ) ];
+                        break;
+                    case 'b':
+                        // boolean
+                        value = parseFloat( xmlValue ) === 1;
+                        break;
+                    default:
+                        // number or date
+                        value = parseFloat( xmlValue );
+                }
+
+                rowObject[ column ] = value;
+            } );
+
+            parsedData.push( rowObject );
+        } );
+
+        return parsedData;
+    }
+}
+if ($.jqx && $.jqx.dataAdapter) {
+    $.jqx.dataAdapter.Importer = DataAdapter;
+}
+})(jqxBaseFramework);
