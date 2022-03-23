@@ -2756,4 +2756,147 @@ class Ajax {
         fetch( url, fetchInit )
             .then( function ( response ) {
                 if ( timeouted ) {
-        
+                    status = 408;
+                    throw new Error( 'timeout' );
+                }
+
+                if ( fetchTimeout ) {
+                    clearTimeout( fetchTimeout );
+                }
+
+                status = response.status;
+
+                if ( !response.ok ) {
+                    throw new Error( response.statusText );
+                }
+
+                return response[ parseMethod ]();
+            } )
+            .then( function ( data ) {
+                if ( parseMethod === 'arrayBuffer' ) {
+                    return JSZip.loadAsync( data ).then( function ( zipData ) {
+                        // "data" represents the whole XLSX/ZIP file
+                        return zipData.files[ 'xl/worksheets/sheet1.xml' ].async( 'text' ).then( function ( sheet1 ) {
+                            return zipData.files[ 'xl/sharedStrings.xml' ].async( 'text' ).then( function ( sharedStrings ) {
+                                const parsedData = that.parseXLSXData( sheet1, sharedStrings );
+
+                                that.ajaxComplete( config, parsedData, status );
+                            } );
+                        } );
+                    } );
+                }
+                else {
+                    that.ajaxComplete( config, data, status );
+                }
+            } )
+            .catch( function ( error ) {
+                if ( error.message === 'JSZip is not defined' ) {
+                    error.message = 'JSZip is not defined. Please include a reference to JSZip to be able to load data from XLSX files.';
+                }
+
+                if ( config && config.loadError ) {
+                    config.loadError( status, error );
+                }
+
+                if ( that.callback ) {
+                    that.callback( error, status );
+                }
+            } );
+    }
+
+    ajaxXMLHttpRequest( config, method, url, body, async ) {
+        const request = new XMLHttpRequest();
+        const that = this;
+
+        request.open( method, url, async );
+
+        request.ontimeout = function () {
+            if ( config && config.loadError ) {
+                config.loadError( 408, 'timeout' );
+            }
+        };
+
+        request.onload = function () {
+            if ( request.readyState === 4 ) {
+                const status = request.status;
+                let data = request.response;
+
+                if ( status >= 200 && status <= 299 ) {
+                    if ( config.dataSourceType === 'json' ) {
+                        data = JSON.parse( data );
+                    }
+
+                    that.ajaxComplete( config, data, status );
+                }
+                else if ( config && config.loadError ) {
+                    config.loadError( status, data );
+                }
+            }
+        };
+
+        request.onerror = function () {
+            if ( config && config.loadError ) {
+                config.loadError( request.status, request.response );
+            }
+        };
+
+        if ( config && config.contentType ) {
+            request.setRequestHeader( 'Content-Type', config.contentType );
+        }
+
+        if ( async && config.timeout ) {
+            request.timeout = config.timeout;
+        }
+
+        if ( config.beforeSend ) {
+            const beforeSendResult = config.beforeSend( request, config );
+
+            if ( beforeSendResult === false ) {
+                return;
+            }
+        }
+
+        request.send( body );
+    }
+
+    ajaxComplete( config, data, status ) {
+        if ( !config ) {
+            return;
+        }
+
+        if ( config.beforeLoadComplete ) {
+            const processedData = config.beforeLoadComplete( data );
+
+            if ( processedData ) {
+                data = processedData;
+            }
+        }
+
+        if ( config.loadComplete ) {
+            config.loadComplete( data, status );
+        }
+
+        if ( this.callback ) {
+            this.callback( data, status );
+        }
+    }
+
+    parseXLSXData( sheet1, sharedStrings ) {
+        const parser = new DOMParser(),
+            sharedStringsDocument = parser.parseFromString( sharedStrings, 'text/xml' ),
+            sharedStringsContainers = Array.from( sharedStringsDocument.getElementsByTagName( 'si' ) ),
+            sharedStringsCollection = [],
+            sheet1Document = parser.parseFromString( sheet1, 'text/xml' ),
+            rows = Array.from( sheet1Document.getElementsByTagName( 'row' ) ),
+            parsedData = [];
+
+        sharedStringsContainers.forEach( function ( si ) {
+            let texts = si.getElementsByTagName( 't' );
+
+            if ( texts.length === 1 ) {
+                sharedStringsCollection.push( texts[ 0 ].innerHTML );
+            }
+            else {
+                let text = '';
+
+                texts = Arr
