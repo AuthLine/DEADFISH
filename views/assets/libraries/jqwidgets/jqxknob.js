@@ -1,0 +1,8 @@
+/*
+jQWidgets v11.0.1 (2020-Dec)
+Copyright (c) 2011-2020 jQWidgets.
+License: https://jqwidgets.com/license/
+*/
+/* eslint-disable */
+
+(function(a){a.jqx.jqxWidget("jqxKnob","",{});a.extend(a.jqx._jqxKnob.prototype,{defineInstance:function(){var b={type:"circle",allowValueChangeOnClick:true,allowValueChangeOnDrag:true,allowValueChangeOnMouseWheel:true,changing:null,dragEndAngle:-1,dragStartAngle:-1,disabled:false,dial:{style:"transparent",innerRadius:0,outerRadius:0,gradientType:null,gradientStops:null,startAngle:null,endAngle:null},endAngle:360,height:400,labels:{type:"digits",step:null,rotate:false,offset:null,style:"",visible:false},marks:{type:"",thickness:1,size:"10%",colorProgress:"transparent",colorRemaining:"transparent",minorInterval:1,majorInterval:5,offset:"80%",majorSize:"15%"},min:0,max:100,progressBar:{size:"10%",offset:"60%",color:"transparent",background:"transparent"},pointer:{color:{color:"transparent",border:null,gradientType:null,gradientStops:null},thickness:1,size:"",type:"",visible:false},pointerGrabAction:"normal",renderEngine:"",rotation:"clockwise",startAngle:0,spinner:{color:"transparent",innerRadius:0,outerRadius:0,marks:{step:1,rotate:false,color:"transparent",size:0,steps:10,thickness:1,offset:0}},style:{fill:"transparent",stroke:"transparent"},_touchEvents:{mousedown:a.jqx.mobile.getTouchEventName("touchstart"),mouseup:a.jqx.mobile.getTouchEventName("touchend"),mousemove:a.jqx.mobile.getTouchEventName("touchmove"),mouseenter:"mouseenter",mouseleave:"mouseleave",click:a.jqx.mobile.getTouchEventName("touchstart")},step:1,sna
