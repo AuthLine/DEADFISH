@@ -150,4 +150,18 @@
             var rgb = that._currentColorRgb.match(/\d+/g);
 
             return {
-                hex: th
+                hex: that._currentColorHex.substring(1),
+                r: parseInt(rgb[0]),
+                g: parseInt(rgb[1]),
+                b: parseInt(rgb[2])
+            };
+        },
+
+        destroy: function () {
+            var that = this;
+
+            that.host.remove();
+        }
+    });
+
+})(jqxBaseFramework);
