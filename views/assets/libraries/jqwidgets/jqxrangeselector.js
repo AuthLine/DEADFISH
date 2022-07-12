@@ -1,0 +1,8 @@
+/*
+jQWidgets v11.0.1 (2020-Dec)
+Copyright (c) 2011-2020 jQWidgets.
+License: https://jqwidgets.com/license/
+*/
+/* eslint-disable */
+
+(function(a){a.jqx.jqxWidget("jqxRangeSelector","",{});a.extend(a.jqx._jqxRangeSelector.prototype,{defineInstance:function(){var b={width:400,height:100,min:0,max:100,range:{from:0,to:Infinity,min:0,max:Infinity},majorTicksInterval:10,minorTicksInterval:1,showMajorTicks:true,showMinorTicks:false,snapToTicks:true,labelsFormat:null,markersFormat:null,showLabels:true,labelsOnTicks:true,markersPosition:"top",labelsFormatFunction:null,groupLabelsFormatFunction:null,markersFormatFunction:null,showGroupLabels:false,showMarkers:true,resizable:true,moveOnClick:true,disabled:false,rtl:false,padding:"auto",events:["change"]};if(this===a.jqx._jqxRangeSelector.prototype){return b}a.extend(true,this,b);return b},createInstance:function(c){var e=this;this._isTouchDevice=a.jqx.mobile.isTouchDevice();if(!a.jqx.dataAdapter){throw new Error("jqxRangeSelector: Missing reference to the following module: 'jqxdata.js'.")}var f=a.jqx.isHidden(this.host);this.render();var d=this.host.width();var b=this.host.height();a.jqx.utilities.resize(this.host,function(){var h=e.host.width();var g=e.host.height();e.range=e.getRange();if(f){e.refresh();f=false}else{if(d!=h||b!=g){e.refresh()}}d=e.host.width();b=e.host.height()})},render:function(){if(this.host.children().length>1||this.rangeSelector){this._removeHandlers();if(this.rangeSelector){this.rangeSelector.re
