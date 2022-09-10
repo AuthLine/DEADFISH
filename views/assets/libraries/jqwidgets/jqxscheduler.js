@@ -1,0 +1,8 @@
+/*
+jQWidgets v11.0.1 (2020-Dec)
+Copyright (c) 2011-2020 jQWidgets.
+License: https://jqwidgets.com/license/
+*/
+/* eslint-disable */
+
+(function(a){if(!a.jqx.scheduler){a.jqx.scheduler={}}a.jqx.jqxWidget("jqxScheduler","",{});a.extend(a.jqx._jqxScheduler.prototype,{defineInstance:function(){var b={altRows:false,autoShowLoadElement:true,columnsHeight:30,columns:[],columnGroups:null,dataview:null,disabled:false,enableHover:true,appointmentOpacity:0.8,headerZIndex:235,height:600,timeRulerWidth:60,loadingErrorMessage:"The data is still loading and you cannot set a property or call a method. You can do that once the data binding is completed. jqxScheduler raises the 'bindingComplete' event when the binding is completed.",localization:null,ready:null,renderToolBar:null,renderAppointment:null,rendered:null,rendering:null,rtl:false,showToolbar:true,showLegend:false,legendPosition:"bottom",legendHeight:34,rowsHeight:27,touchRowsHeight:36,appointmentsMinHeight:18,touchAppointmentsMinHeight:27,appointmentsRenderMode:"default",serverProcessing:false,selectionMode:"multiplerows",scrollBarSize:a.jqx.utilities.scrollBarSize,touchScrollBarSize:a.jqx.utilities.touchScrollBarSize,showHeader:true,maxHeight:999999,maxWidth:999999,autoBind:true,showAllDayRow:true,changedAppointments:new Array(),renderMode:"simple",views:new Array(),view:0,min:new a.jqx.date(0),max:new a.jqx.date(9999,12,31),date:new a.jqx.date("todayDate"),colors:["#307DD7","#AA4643","#89A54E","#71588F","#4198AF","#7FD13B","#EA157A","#FEB80A","#00ADDC","#738AC8","#E8601A","#FF9639","#F5BD6A","#599994","#115D6E","#D02841","#FF7C41","#FFC051","#5B5F4D","#364651","#25A0DA","#309B46","#8EBC00","#FF7515","#FFAE00","#0A3A4A","#196674","#33A6B2","#9AC836","#D0E64B","#CC6B32","#
