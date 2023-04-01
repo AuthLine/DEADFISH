@@ -1,0 +1,8 @@
+<%- include('../partials/header.ejs'); %>
+<% if (recaptchasite != false) { %>
+  <script src="https://www.google.com/recaptcha/api.js?render=<%= recaptchasite %>"></script>
+<% } %>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="epibot-panel w-50">
+      <div class="w-100 e
