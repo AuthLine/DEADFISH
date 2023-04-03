@@ -1,0 +1,147 @@
+
+<%
+
+if (typeof(tab_logs) != undefined) {
+
+  var logfilters = tab_logs.logfilters;
+
+} else {
+
+  var logfilters = 'debug,notice,warning,error,success';
+
+}
+
+%>
+<div class="epibot-panel-header">
+  <div class="row">
+    <div class="col "><p class="m-0" id="logstitle">Log Viewer</p></div>
+    <div class="col text-right">
+      <div class="float-right" id="logsnavbar" style="vertical-align: middle; float: right; margin-right: 10px;">
+        <span style="display: inline-block;">
+          <select id="logsfilter" style="font-weight: normal">
+            <option value="debug">Debug</option>
+            <option value="notice">Notice</option>
+            <option value="warning">Warning</option>
+            <option value="error">Error</option>
+            <option value="success">Success</option>
+          </select>
+        </span>
+        <span class="float-right" style="display: inline-block;">
+          <button type="button" class="btn btn-default epibot-navbutton" href="#" id="logrefreshlink" style="margin-bottom: 20px;"><span class="fa fa-refresh"></span> Refresh</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="epibot-panel-content pb-3">
+    <div class="row">
+      <div class="col">  
+        <div id="logpanel" style="overflow-x: scroll; overflow-y: scroll; background-color: #000000; font-family: courier, 'courier new', monospace; font-size: 10pt; white-space: nowrap;"></div>
+      </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+  $(document).ready(function () {
+        
+      var logdata = {};
+  
+      var panelheight = $(window).height() - 240;
+      if (panelheight < 300) panelheight = 300;
+      console.log(panelheight)
+      $("#logpanel").jqxPanel({ height: panelheight, width: '100%', sizeMode: 'fixed', autoUpdate: true, scrollBarSize: 20});
+
+      function setLogData(data) {
+        var content = '<p style="padding: 5px;">';
+        var colors = {
+          error: '#FF0000',
+          warning: '#00FFFF',
+          success: '#00FF00',
+          debug: '#AAAAFF',
+          notice: '#EEEEEE'
+        };
+        var colorkeys = Object.keys(colors);
+        for (var i = 0; i < data.length; i++) {
+          var line = data[i];
+          var addContent = '';
+          for (var j = 0; j < colorkeys.length; j++) {
+            var key = colorkeys[j];
+            var color = colors[key];
+            if (line.toLowerCase().indexOf(key.toLowerCase()) != -1) {
+              addContent = '<font color="' + color + '">' + line.replace(/\ \ /g,'&nbsp;&nbsp;') + '</font><br />';
+            }
+          }
+          if (addContent == '') 
+            addContent = '<font color="white">' + line.replace(/\ \ /g,'&nbsp;&nbsp;') + '</font><br />';
+          content += addContent;
+        }; 
+        content += '</p>';
+        $("#logpanel").html(content);
+      }
+
+      function refreshLog() {
+        var token = null;
+        if (localStorage) {
+          var token = localStorage.getItem("token");
+          if (token != null) {
+            var params = {
+              token: JSON.parse(token),
+              filters: getFilters()
+            };
+            //setLogData([]);
+            jQuery.getJSON({
+              url: "/ui/data/logdata",
+              data: params,
+              success: function(result) {
+                setLogData(result);
+                var d = $('#logpanel');
+                d.scrollTop(d.prop("scrollHeight"));
+              }
+            });
+          }
+        }
+      }
+
+      $("#logsfilter").jqxDropDownList({ width: 200, height: 30, checkboxes: true, dropDownHeight: 150 });
+    
+      function updateFilters(logfilters) {
+        $("#logsfilter").jqxDropDownList('uncheckAll');
+        (logfilters + ',_').split(',').forEach(filter => {
+          if (filter != '_') {
+            var item = $("#logsfilter").jqxDropDownList('getItemByValue', filter);
+            if (item.hasOwnProperty('index')) {
+              $("#logsfilter").jqxDropDownList('checkIndex', item.index)
+            }
+          }
+        });
+      }
+
+      updateFilters('<%= logfilters %>');
+
+      function getFilters() {
+        var allChecked = $("#logsfilter").jqxDropDownList('getCheckedItems');
+        var filterarr = [];
+        if (Array.isArray(allChecked)) {
+          for (var i = 0; i < allChecked.length; i++) {
+            var item = allChecked[i];
+            filterarr.push(item.value);
+          }
+        }
+        var logfilters = filterarr.join(',');
+        return logfilters;
+      }
+
+      $("#logsfilter").on('checkChange', function (event) {
+        refreshLog();
+      });
+
+      $("#logrefreshlink").on('click', function() {
+        refreshLog();
+      });
+
+      refreshLog();
+
+  });
+
+</script>

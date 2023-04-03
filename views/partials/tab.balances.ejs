@@ -1,0 +1,212 @@
+
+<%
+
+if (typeof(tab_balances) !== 'undefined') {
+  var accounts = Object.values(tab_balances);
+  var stubs = [];
+  accounts.forEach(account => {
+    stubs.push(account.stub);
+  })
+} else {
+  var stubs = [];
+}
+
+%>
+
+<div class="epibot-panel-header">
+  <div class="row">
+    <div class="col "><p class="m-0" id="balancestitle">Balances</p></div>
+    <div class="col text-right">
+      <div class="float-right" id="balancesnavbar" style="vertical-align: middle; float: right; margin-right: 10px; display: none;">
+        <!--span>
+          <button type="button" class="btn btn-default epibot-navbutton" href="#" id="columnchooser" style="margin-bottom: 20px; width: 100px;"><span class="fa fa-columns"></span> Columns</button>
+        </span-->
+        <span style="display: inline-block;">
+          <select id="balancesstub" style="width: 200px; display: inline-block; font-weight: normal; border-radius: 5px;">
+            <%
+              stubs.forEach(stub => {
+            %>
+                <option value="<%= stub %>"><%= stub %></option>
+            <%
+              });
+            %>
+          </select>  
+        </span>
+        <span style="display: inline-block;">
+          <button type="button" class="btn btn-default epibot-navbutton" href="#" id="balancesrefreshlink" style="margin-bottom: 20px;"><span class="fa fa-refresh"></span> Refresh</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="epibot-panel-content" >
+  <div id="table_balances"></div>
+</div>
+
+</div>
+
+<style type="text/css">
+  .red {
+      color: #BB0000;
+  }
+  
+  .green {
+      color: #008800;
+  }
+  
+</style>
+<div id="balancesgrid" style="margin-bottom: 10px;"></div>
+<script src="/scripts/notifications.js"></script>
+<script src="/scripts/api.js"></script>
+
+<script type="text/javascript">
+  
+    $(document).ready(function () {
+        
+      var griddata = {};
+
+  
+      function setGridData(data) {
+        balancesSource.localdata = data;
+        $("#balancesgrid").jqxGrid('updatebounddata');
+      }
+
+      function clearBalances(stub) {
+        setGridCache(stub, []);
+        setGridData([]);
+      }
+
+      function getGridCache(stub) {
+        if (griddata.hasOwnProperty(stub))
+          return griddata[stub];
+        return false;
+      }
+
+      function setGridCache(stub, data) {
+        griddata[stub] = data;
+        return true;
+      }
+
+      function refreshCache(stub = null) {
+        if (stub == null)
+          stub = $("#balancestub").val();
+        var token = null;
+        if (localStorage) {
+          var token = localStorage.getItem("token");
+          if (token != null) {
+            var params = {
+              token: JSON.parse(token),
+              stub: stub
+            };
+            setGridData([]);
+            jQuery.getJSON({
+              url: "/ui/data/griddata_balances",
+              data: params,
+              success: function(result) {
+                setGridCache(stub, result);
+                setGridData(result);
+              }
+            });
+          }
+        }
+      }
+
+      function getGridData(cached = true) {
+        //$('#balancesgrid').jqxGrid('showloadelement');
+        var stub = $("#balancesstub").val();
+        if (cached == true) {
+          var cache = getGridCache(stub);
+          if (cache != false) {
+            setGridData(cache);
+            return true;
+          }
+        }
+        refreshCache(stub);
+        return true;
+      }
+      
+  
+      var balancesSource = {
+        localdata: griddata,
+        datafields: [
+          { name: 'currency', type: 'string', },
+          { name: 'base_free', type: 'number' },
+          { name: 'base_used', type: 'number' },
+          { name: 'base_total', type: 'number' },
+          { name: 'usd_free', type: 'number' },
+          { name: 'usd_used', type: 'number' },
+          { name: 'usd_total', type: 'number' },
+        ],
+        datatype: "json"
+      };
+  
+      var balancesAdapter = new $.jqx.dataAdapter(balancesSource);
+  
+      var gridheight = $(window).height() - 420;
+      if (gridheight < 300) gridheight = 300;
+  
+  
+      $("#balancesgrid").jqxGrid({
+        width: '100%',
+        height: gridheight,
+        source: balancesAdapter,
+        columnsresize: true,
+        filterable: true,
+        sortable: true,
+        showaggregates: true,
+        showstatusbar: true,
+        statusbarheight: 23,
+        columnsheight: 20,
+        rowsheight: 20,
+        theme: 'dark',
+        showemptyrow: false,
+        columnsmenu: true,
+        columns: [
+          { text: 'Currency', datafield: 'currency', filtertype: 'checkedlist', width: 'auto', aggregates: ['count'], aggregatesrenderer: function (aggregates) { var renderstring = ""; $.each(aggregates, function (key, value) { renderstring += '<div style="position: relative; margin: 4px; overflow: hidden;"><b>Balances: </b><font>' + value +'</div>'; }); return renderstring; } },
+          { text: 'Free', datafield: 'base_free', columngroup: 'base', hideable: true, width: 120, align: 'right', cellsalign: 'right', cellsformat: 'd4'},
+          { text: 'Used', datafield: 'base_used', columngroup: 'base', hideable: true, width: 120, align: 'right', cellsalign: 'right', cellsformat: 'd4'},
+          { text: 'Total', datafield: 'base_total', columngroup: 'base', hideable: true, width: 120, align: 'right', cellsalign: 'right', cellsformat: 'd4' },
+          { text: 'Free', datafield: 'usd_free', columngroup: 'usd', hideable: true, width: 120, align: 'right', cellsalign: 'right', cellsformat: 'c2' },
+          { text: 'Used', datafield: 'usd_used', columngroup: 'usd', hideable: true, width: 120, align: 'right', cellsalign: 'right', cellsformat: 'c2' },
+          { text: 'Total', datafield: 'usd_total', columngroup: 'usd', hideable: true, width: 120, align: 'right', cellsalign: 'right', aggregates: ['sum'], aggregatesrenderer: function (aggregates) { var renderstring = ""; $.each(aggregates, function (key, value) { renderstring += '<div style="position: relative; margin: 4px; overflow: hidden;"><b>' + value +'</b></div>'; }); return renderstring; }, cellsformat: 'c2' },
+        ],
+        columngroups: [
+          { text: 'Base Currency', align: 'center', name: 'base' },
+          { text: 'USD Value', align: 'center', name: 'usd' },
+        ],
+      });
+    
+      $("#balancesstub").jqxDropDownList({height: 30, width: 150});
+
+      if (localStorage) {
+        var balancesstubselected = localStorage.getItem("balancesstubselected");
+        if (balancesstubselected != null) {
+          $("#balancesstub").val(balancesstubselected);
+        }
+      }
+
+  
+      $("#balancesrefreshlink").on('click', function() {
+        getGridData(false);
+      });
+
+        
+      $("#balancesstub").on('change', function() {
+        var stub = $("#balancesstub").val();
+        if (localStorage) {
+          localStorage.setItem("balancesstubselected", stub);
+        }
+        getGridData(true);
+      });
+  
+      getGridData(true);
+      $('#balancesnavbar').show();
+
+      $("#columnchooser").jqxButton();
+      $("#columnchooser").on('click', function () {
+          $("#balancesgrid").jqxGrid('openColumnChooser');
+      });
+  
+    });
+    
+  </script>

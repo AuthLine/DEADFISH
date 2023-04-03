@@ -1,0 +1,272 @@
+
+<%
+
+if (typeof(tab_positions) !== 'undefined') {
+  var accounts = tab_positions.hasOwnProperty('accounts') ? tab_positions.accounts : [];
+  var showspot = tab_positions.hasOwnProperty('showspot') ? tab_positions.showspot : false;
+  var stubs = [];
+  Object.values(accounts).forEach(account => {
+    stubs.push(account.stub);
+  })
+} else {
+  var showspot = false;
+  var stubs = [];
+}
+
+%>
+
+<div class="epibot-panel-header">
+  <div class="row">
+    <div class="col "><p class="m-0" id="positionstitle">Positions</p></div>
+    <div class="col text-right">
+      <div class="float-right" id="positionsnavbar" style="width: 580px; vertical-align: middle; float: right; margin-right: 10px; display: none;">
+        <span style="display: inline-block; white-space: nowrap;">
+          <button type="button" class="btn btn-default epibot-navbutton" href="#" id="columnchooser" style="margin-bottom: 20px; width: 100px;">
+          <span class="fa fa-columns" style="display: inline-block;"></span> Columns</button>
+        </span>
+        <span style="display: inline-block; white-space: nowrap;">
+          <select id="positionsstub" style="width: 200px; display: inline-block; font-weight: normal; border-radius: 5px;">
+            <%
+              stubs.forEach(stub => {
+            %>
+                <option value="<%= stub %>"><%= stub %></option>
+            <%
+              });
+            %>
+          </select>  
+        </span>
+        <span style="display: inline-block; white-space: nowrap;">
+          <div id="positionsshowspot" style='margin-left: 10px; font-weight: normal'><span>Show Spot</span></div>
+        </span>
+        <span style="display: inline-block; white-space: nowrap;">
+          <button type="button" class="btn btn-default epibot-navbutton" href="#" id="positionsrefreshlink" style="margin-bottom: 20px;"><span class="fa fa-refresh"></span> Refresh</button>
+          <button type="button" class="btn btn-default epibot-navbutton" href="#" id="positionsclosealllink" style="margin-bottom: 20px; width: 100px; color: red"><span class="fa fa-close"></span> Close All</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="epibot-panel-content" >
+  <div id="table_positions"></div>
+</div>
+
+</div>
+
+<style type="text/css">
+  .red {
+      color: #BB0000;
+  }
+  
+  .green {
+      color: #008800;
+  }
+  
+</style>
+<div id="positionsgrid" style="margin-bottom: 10px;"></div>
+<script src="/scripts/notifications.js"></script>
+<script src="/scripts/api.js"></script>
+
+<script type="text/javascript">
+  
+    $(document).ready(function () {
+        
+      var griddata = {};
+      var showspot = '<%=showspot%>' == 'true' ? true : false;
+  
+      function setGridData(data) {
+        positionsSource.localdata = data;
+        $("#positionsgrid").jqxGrid('updatebounddata');
+        $('.closepositionlink').on('click', function() {
+          var stub = $(this).attr('data-stub');
+          var symbol = $(this).attr('data-symbol');
+          if (confirm("Are you sure you wish to close your " + symbol + " position?")) {
+            closePosition(stub, symbol)
+          }
+        });
+      }
+
+      function removePosition(stub, symbol) {
+        var data = getGridCache(stub).filter(item => item.symbol != symbol);
+        setGridCache(stub, data);
+        setGridData(data);
+      }
+
+      function clearPositions(stub) {
+        setGridCache(stub, []);
+        setGridData([]);
+      }
+
+      function getGridCache(stub) {
+        if (griddata.hasOwnProperty(stub))
+          return griddata[stub];
+        return false;
+      }
+
+      function setGridCache(stub, data) {
+        griddata[stub] = data;
+        return true;
+      }
+
+      function refreshCache(stub = null) {
+        if (stub == null)
+          stub = $("#positionsstub").val();
+        var showspot = $("#positionsshowspot").jqxCheckBox('val');
+        var token = null;
+        if (localStorage) {
+          var token = localStorage.getItem("token");
+          if (token != null) {
+            var params = {
+              token: JSON.parse(token),
+              stub: stub,
+              showspot: showspot,
+            };
+            setGridData([]);
+            jQuery.getJSON({
+              url: "/ui/data/griddata_positions",
+              data: params,
+              success: function(result) {
+                setGridCache(stub, result);
+                setGridData(result);
+              }
+            });
+          }
+        }
+      }
+
+      function getGridData(cached = true) {
+        //$('#positionsgrid').jqxGrid('showloadelement');
+        var stub = $("#positionsstub").val();
+        if (cached == true) {
+          var cache = getGridCache(stub);
+          if (cache != false) {
+            setGridData(cache);
+            return true;
+          }
+        }
+        refreshCache(stub);
+        return true;
+      }
+      
+  
+      var positionsSource = {
+        localdata: griddata,
+        datafields: [
+          { name: 'symbol', type: 'string', },
+          { name: 'type', type: 'string', },
+          { name: 'direction', type: 'string', },
+          { name: 'base_size', type: 'number' },
+          { name: 'quote_size', type: 'number' },
+          { name: 'usd_size', type: 'number' },
+          { name: 'entry_price', type: 'number' },
+          { name: 'current_price', type: 'number' },
+          { name: 'liquidation_price', type: 'number' },
+          { name: 'entry_value', type: 'number' },
+          { name: 'current_value', type: 'number' },
+          { name: 'pnl', type: 'number' },
+          { name: 'actions', type: 'string', },
+        ],
+        datatype: "json"
+      };
+  
+      var positionsAdapter = new $.jqx.dataAdapter(positionsSource);
+  
+      var gridheight = $(window).height() - 420;
+      if (gridheight < 300) gridheight = 300;
+  
+  
+      $("#positionsgrid").jqxGrid({
+        width: '100%',
+        height: gridheight,
+        source: positionsAdapter,
+        columnsresize: true,
+        filterable: true,
+        sortable: true,
+        showaggregates: true,
+        showstatusbar: true,
+        statusbarheight: 23,
+        columnsheight: 20,
+        rowsheight: 20,
+        theme: 'dark',
+        showemptyrow: false,
+        columnsmenu: true,
+        columns: [
+          { text: 'Symbol', datafield: 'symbol', filtertype: 'checkedlist', width: 'auto', aggregates: ['count'], aggregatesrenderer: function (aggregates) { var renderstring = ""; $.each(aggregates, function (key, value) { renderstring += '<div style="position: relative; margin: 4px; overflow: hidden;"><b>Positions: </b><font>' + value +'</div>'; }); return renderstring; } },
+          { text: 'Type', datafield: 'type', hideable: true, filtertype: 'checkedlist', width: 75 },
+          { text: 'Direction', datafield: 'direction', hideable: true, width: 80, cellclassname: function(row, column, value, data) { return data.direction == "short" ? "red" : "green" }  },
+          { text: 'Base Size', datafield: 'base_size', hideable: true, width: 100, align: 'right', cellsalign: 'right', cellsformat: 'd4', cellclassname: function(row, column, value, data) { return data.direction == "short" ? "red" : "green" } },
+          { text: 'Quote Size', datafield: 'quote_size', hideable: true, width: 100, align: 'right', cellsalign: 'right', cellsformat: 'd4', cellclassname: function(row, column, value, data) { return data.direction == "short" ? "red" : "green" } },
+          { text: 'USD Size', datafield: 'usd_size', hideable: true, width: 100, align: 'right', cellsalign: 'right', aggregates: ['sum'], aggregatesrenderer: function (aggregates) { var renderstring = ""; $.each(aggregates, function (key, value) { renderstring += '<div style="position: relative; margin: 4px; overflow: hidden;"><b>' + value +'</b></div>'; }); return renderstring; }, cellsformat: 'c2', cellclassname: function(row, column, value, data) { return data.direction == "short" ? "red" : "green" } },
+          { text: 'Entry Price', datafield: 'entry_price', hideable: true, hidden: true, width: 100, align: 'right', cellsalign: 'right', cellsformat: 'd4' },
+          { text: 'Mark Price', datafield: 'current_price', hideable: true, hidden: true, width: 100, align: 'right', cellsalign: 'right', cellsformat: 'd4' },
+          { text: 'Est Liq Price', datafield: 'liquidation_price', hideable: true, width: 100, align: 'right', cellsalign: 'right', cellsformat: 'd4' },
+          //{ text: 'Current Value ($)', datafield: 'usd_size', width: 100, align: 'right', cellsalign: 'right', cellsformat: 'c2', cellclassname: function(row, column, value, data) { return data.pnl < 0 ? "red" : "green" }, aggregates: ['sum'] },
+          { text: 'PNL', datafield: 'pnl', hideable: true, width: 100, align: 'right', aggregates: ['sum'], aggregatesrenderer: function (aggregates) { var renderstring = ""; $.each(aggregates, function (key, value) { renderstring += '<div style="position: relative; margin: 4px; overflow: hidden;"><font class="' + ((value.replace('$','') * 1) < 0 ? 'red' : 'green') + '"><b>' + value +'</b></font></div>'; }); return renderstring; }, cellsalign: 'right', cellsformat: 'c2', cellclassname: function(row, column, value, data) { return value < 0 ? "red" : "green" }, aggregates: ['sum'] },
+          { text: 'Actions', datafield: 'actions', align: 'center', cellsalign: 'center', width: 75 },
+        ]
+      });
+  
+      function closePosition(stub, symbol) {
+        showNotice('Closing position on ' + symbol + '...');
+        removePosition(stub, symbol);
+        api('trade:close', { stub: stub, symbol: symbol, silent: true }, function(json) {
+          if (json.result == "success") {
+            showSuccess(symbol + ' position closed successfully');
+            griddata[stub] = griddata[stub].filter(item => item.symbol = symbol);
+          } else {
+            showFail('Failed to close position on ' + symbol)
+          }
+        });            
+      }
+    
+      $("#positionsstub").jqxDropDownList({height: 30, width: 150});
+
+      if (localStorage) {
+        var positionsstubselected = localStorage.getItem("positionsstubselected");
+        if (positionsstubselected != null) {
+          $("#positionsstub").val(positionsstubselected);
+        }
+      }
+
+      $("#positionsshowspot").jqxCheckBox({ height: 30, width: 100, checked: showspot});
+      $("#positionsshowspot").on('change', function() {
+          refreshCache();
+      });
+  
+      $("#positionsrefreshlink").on('click', function() {
+        getGridData(false);
+      });
+
+      $("#positionsclosealllink").on('click', function() {
+        var stub = $("#positionsstub").val();
+        if (confirm('Are you sure you want to close all positions on ' + stub + '?')) {
+            clearPositions(stub);
+            showNotice('Closing all positions on ' + stub + '...');
+            api('trade:closeall', { stub: stub, silent: true }, function(json) {
+                if (json.result == "success") {
+                    showSuccess('All positions on ' + stub + ' closed successfully');
+                } else {
+                    showFail('Failed to close all positions')
+                }
+            });      
+        }
+      });
+         
+      $("#positionsstub").on('change', function() {
+        var stub = $("#positionsstub").val();
+        if (localStorage) {
+          localStorage.setItem("positionsstubselected", stub);
+        }
+        getGridData(true);
+      });
+  
+      getGridData(true);
+      $('#positionsnavbar').show();
+
+      $("#columnchooser").jqxButton();
+      $("#columnchooser").on('click', function () {
+          $("#positionsgrid").jqxGrid('openColumnChooser');
+      });
+  
+    });
+    
+  </script>

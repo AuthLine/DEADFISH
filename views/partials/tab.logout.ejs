@@ -1,0 +1,33 @@
+<div class="epibot-panel-header">
+  <div class="row">
+    <div class="col "><p class="m-0" id="apikeystitle">Security</p></div>
+    <div class="col text-right">
+      <div class="float-right" id="apikeysnavbar">
+        <!-- For nav bar butttons-->
+      </div>
+    </div>
+  </div>
+</div>
+<div class="epibot-panel-content pb-3" style="margin: 10px; margin-bottom: 0px;">
+    <div class="row">
+      <div>Logging out...</div>
+    </div>
+</div>
+
+<%
+
+  if (typeof(tab_logout) != undefined) {
+    var logout = tab_logout.hasOwnProperty('logout') ? tab_logout.logout : false;
+%>
+<script>
+  if (localStorage) {
+      localStorage.setItem("token", JSON.stringify(null));
+      document.location.href = '/ui/login';
+  }
+</script>
+
+<%
+
+  }
+
+%>

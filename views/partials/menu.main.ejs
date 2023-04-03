@@ -4,4 +4,21 @@
 <script type="text/javascript">
     //var signaladmin = <%= menu_main['isSignalAdmin'] %>;
     var menu = [
-         { id: 'tab_accounts', name: 'Accounts',      enabled: true
+         { id: 'tab_accounts', name: 'Accounts',      enabled: true, visible: true },
+         { id: 'tab_balances',name: 'Balances',     enabled: true, visible: true  },
+         { id: 'tab_positions',name: 'Positions',     enabled: true, visible: true  },
+         //{ id: 'tab_orders',   name: 'Orders',        enabled: true, visible: true },
+         //{ id: 'tab_provider', name: 'Signal Admin',  enabled: true, visible: signaladmin },
+         { id: 'tab_security', name: 'Security',      enabled: true, visible: true },
+         { id: 'tab_logs',     name: 'Logs',          enabled: true, visible: true },
+         { id: 'tab_logout',   name: 'Logout',        enabled: true, visible: true },
+    ]; 
+
+    var content = '<ul>';
+    menu.forEach(item => {
+        if (item.visible) content += '<li data-content="' + item.id + '"><a href="#">' + item.name + '</a></li>';
+    });
+    content += '</ul>';
+    $("#mainmenu").html(content);
+    $("#mainmenu").jqxMenu({ width: '140', mode: 'vertical', theme: 'dark'});
+</script>
